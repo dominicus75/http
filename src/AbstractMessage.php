@@ -21,7 +21,7 @@ abstract class AbstractMessage implements MessageInterface
 {
     
     /**
-     * The string MUST contain only the HTTP version number (e.g., "1.1", "1.0").
+     * The string contain only the HTTP version number (e.g., "1.1", "1.0").
      *
      * @var string
      */
@@ -42,10 +42,7 @@ abstract class AbstractMessage implements MessageInterface
      */
     protected StreamInterface $body;
 
-	/**
-     * 
-	 */
-	protected function __construct() 
+    protected function __construct() 
     {
         $this->protocol = explode('/', $_SERVER['SERVER_PROTOCOL'])[1];
         $this->headers = [
@@ -77,10 +74,7 @@ abstract class AbstractMessage implements MessageInterface
      *
      * @return string HTTP protocol version.
      */
-    public function getProtocolVersion(): string 
-    {
-        return $this->protocol;
-    }
+    public function getProtocolVersion(): string { return $this->protocol; }
 
     /**
      * Return an instance with the specified HTTP protocol version.
@@ -237,7 +231,7 @@ abstract class AbstractMessage implements MessageInterface
 	 * @return AbstractMessage
      * @throws \InvalidArgumentException for invalid header names or values.
 	 */
-	protected function setHeaderField(string $name, string|array $value, bool $update = false): self
+    protected function setHeaderField(string $name, string|array $value, bool $update = false): self
     {
         $field = $this->normalizeHeaderdName($name);
 
