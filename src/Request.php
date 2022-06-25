@@ -41,11 +41,27 @@ class Request extends AbstractMessage implements RequestInterface
     protected UriInterface $uri;
 
 	/**
+     * The constructor method
      * 
+     * @param string $method
+     * @return self
+     * @throws \InvalidArgumentException if 
+     * - $method is not valid HTTP method
+     * - a header name is not valid
 	 */
-	public function __construct(string $method = '') 
-    {
+	public function __construct(
+        string $method = '',
+        array $headers = [],
+        string|UriInterface|null $uri = null,
+        string|StreamInterface|null $body = null
+    ) {
         parent::__construct();
+
+        $method = !empty($method) ? $method : $_SERVER['REQUEST_METHOD'];
+
+        if (\preg_match('/^(options|get|head|put|post|delete|patch)$/is', $method)) {
+            $this->method = $method;
+        } else { throw new \InvalidArgumentException($method.' is not a valid HTTP method.'); }
 
         $this->headers['A-IM']                           = null;
         $this->headers['Accept']                         = null;
@@ -81,22 +97,39 @@ class Request extends AbstractMessage implements RequestInterface
         $this->headers['X-Requested-With']               = null;
         $this->headers['X-Csrf-Token']                   = null;
 
-        foreach ($_SERVER as $name => $value) { 
-            if (str_starts_with($name, 'HTTP')) { $this->setHeaderField($name, $value); }
+        try {
+            if (empty($headers)) {
+                foreach ($_SERVER as $name => $value) { 
+                    if (str_starts_with($name, 'HTTP')) { $this->setHeaderField($name, $value); }
+                }
+            } else {
+                foreach ($headers as $name => $value) { $this->setHeaderField($name, $value); }
+            }
+        } catch (\InvalidArgumentException $e) { throw $e; }
+
+        if($uri instanceof UriInterface) {
+            $this->uri = $uri;
+        } else {
+            $this->uri = \is_string($uri) ? new Uri($uri) : new Uri();
         }
 
-        $method = !empty($method) ? $method : $_SERVER['REQUEST_METHOD'];
+        $path                 = $this->uri->getPath();
+        $query                = $this->uri->getQuery();
+        $this->requestTarget  = empty($path) ? '/' : $path;
+        $this->requestTarget .= empty($query) ? '' : '?'.$query;
 
-        if (\preg_match('/^(options|get|head|put|post|delete|patch)$/is', $method)) {
-            $this->method = $_SERVER['REQUEST_METHOD'];
-        } else { throw new \InvalidArgumentException($method.' is not a valid HTTP method.'); }
+        if($body instanceof StreamInterface || \is_null($body)) {
+            $this->body = $body;
+        } elseif(\is_string($body)) {
+            $this->body = new Stream($body);
+        }
 	}
 
     /**
      * Retrieves the message's request target.
      *
      * If no URI is available, and no request-target has been specifically
-     * provided, this method MUST return the string "/".
+     * provided, this method returns the string "/".
      *
      * @return string
      */

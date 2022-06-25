@@ -38,9 +38,9 @@ abstract class AbstractMessage implements MessageInterface
     /**
      * Describes a data stream. Typically, an instance will wrap a PHP stream
      *
-     * @var StreamInterface
+     * @var StreamInterface|null
      */
-    protected StreamInterface $body;
+    protected StreamInterface|null $body;
 
     protected function __construct() 
     {
@@ -61,7 +61,7 @@ abstract class AbstractMessage implements MessageInterface
             'Via'               => null,
             'Warning'           => null
         ];
-	}
+    }
 
     ##########################
     # PSR-7 Public interface #
@@ -116,7 +116,10 @@ abstract class AbstractMessage implements MessageInterface
      *     name using a case-insensitive string comparison. Returns false if
      *     no matching header name is found in the message.
      */
-    public function hasHeader($name): bool { return isset($this->headers[$name]); }
+    public function hasHeader($name): bool { 
+        $name = $this->normalizeHeaderdName($name);
+        return isset($this->headers[$name]); 
+    }
 
     /**
      * Retrieves a message header value by the given case-insensitive name.
@@ -128,6 +131,7 @@ abstract class AbstractMessage implements MessageInterface
      */
     public function getHeader($name): array
     {
+        $name = $this->normalizeHeaderdName($name);
         return $this->hasHeader($name) ? $this->headers[$name] : [];
     }
 
@@ -141,6 +145,7 @@ abstract class AbstractMessage implements MessageInterface
      */
     public function getHeaderLine($name): string
     {
+        $name = $this->normalizeHeaderdName($name);
         return $this->hasHeader($name) ? \implode(',', $this->headers[$name]) : '';
     }
 
@@ -191,6 +196,7 @@ abstract class AbstractMessage implements MessageInterface
     public function withoutHeader($name): AbstractMessage
     {
         $clone = clone $this;
+        $name  = $this->normalizeHeaderdName($name);
         if ($this->hasHeader($name)) { unset($this->headers[$name]); }
         return $clone;  
     }
