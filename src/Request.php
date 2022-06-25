@@ -46,8 +46,8 @@ class Request extends AbstractMessage implements RequestInterface
      * @param string $method
      * @return self
      * @throws \InvalidArgumentException if 
-     * - $method is not valid HTTP method
-     * - a header name is not valid
+     *  $method is not valid HTTP method,
+     *  a header name is not valid.
 	 */
 	public function __construct(
         string $method = '',
