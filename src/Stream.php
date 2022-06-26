@@ -3,7 +3,6 @@
 namespace Dominicus75\Http;
 
 use Psr\Http\Message\StreamInterface;
-use LDAP\Result;
 
 /**
  * Describes a data stream.
