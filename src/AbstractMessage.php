@@ -61,6 +61,12 @@ abstract class AbstractMessage implements MessageInterface
             'Via'               => null,
             'Warning'           => null
         ];
+
+        if($body instanceof StreamInterface || \is_null($body)) {
+            $this->body = $body;
+        } elseif(\is_string($body)) {
+            $this->body = new Stream($body);
+        }
     }
 
     ##########################

@@ -46,8 +46,8 @@ class Request extends AbstractMessage implements RequestInterface
      * @param string $method
      * @return self
      * @throws \InvalidArgumentException if
-     *  $method is not valid HTTP method,
-     *  a header name is not valid.
+     *  - $method is not valid HTTP method,
+     *  - a header name is not valid.
      */
     public function __construct(
         string $method = '',
@@ -55,7 +55,7 @@ class Request extends AbstractMessage implements RequestInterface
         string|UriInterface|null $uri = null,
         string|StreamInterface|null $body = null
     ) {
-        parent::__construct();
+        parent::__construct($body);
 
         $method = !empty($method) ? $method : $_SERVER['REQUEST_METHOD'];
 
@@ -117,12 +117,6 @@ class Request extends AbstractMessage implements RequestInterface
         $query                = $this->uri->getQuery();
         $this->requestTarget  = empty($path) ? '/' : $path;
         $this->requestTarget .= empty($query) ? '' : '?'.$query;
-
-        if($body instanceof StreamInterface || \is_null($body)) {
-            $this->body = $body;
-        } elseif(\is_string($body)) {
-            $this->body = new Stream($body);
-        }
     }
 
     ##########################
