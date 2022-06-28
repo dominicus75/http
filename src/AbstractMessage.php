@@ -42,9 +42,10 @@ abstract class AbstractMessage implements MessageInterface
      */
     protected StreamInterface|null $body;
 
-    protected function __construct()
+    protected function __construct(string|StreamInterface|null $body = null)
     {
         $this->protocol = explode('/', $_SERVER['SERVER_PROTOCOL'])[1];
+
         $this->headers = [
             'Cache-Control'     => null,
             'Connection'        => null,
