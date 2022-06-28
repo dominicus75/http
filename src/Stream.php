@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-namespace Dominicus75\Http;
+namespace Dominicus75\Psr7;
 
 use Psr\Http\Message\StreamInterface;
 
