@@ -100,7 +100,8 @@ abstract class AbstractMessage implements MessageInterface
      *     key MUST be a header name, and each value MUST be an array of strings
      *     for that header.
      */
-    public function getHeaders(): array { 
+    public function getHeaders(): array 
+    { 
         $result = [];
         foreach ($this->headers as $name => $value) {
             if (!\is_null($value)) { $result[$name] = $value; }
@@ -116,7 +117,8 @@ abstract class AbstractMessage implements MessageInterface
      *     name using a case-insensitive string comparison. Returns false if
      *     no matching header name is found in the message.
      */
-    public function hasHeader($name): bool { 
+    public function hasHeader($name): bool 
+    { 
         $name = $this->normalizeHeaderdName($name);
         return isset($this->headers[$name]); 
     }

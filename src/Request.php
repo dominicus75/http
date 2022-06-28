@@ -49,7 +49,7 @@ class Request extends AbstractMessage implements RequestInterface
      *  $method is not valid HTTP method,
      *  a header name is not valid.
 	 */
-	public function __construct(
+    public function __construct(
         string $method = '',
         array $headers = [],
         string|UriInterface|null $uri = null,

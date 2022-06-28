@@ -15,7 +15,7 @@ class Stream implements StreamInterface
 {
 
     /**
-     * @var resource|null 
+     * @var resource|null
      */
     protected $stream = null;
 
@@ -28,8 +28,8 @@ class Stream implements StreamInterface
      */
     public function __construct($body = '')
     {
-        if (\is_resource($body)) { 
-            $this->stream = $body; 
+        if (\is_resource($body)) {
+            $this->stream = $body;
         } elseif (\is_string($body)) {
             $this->stream = \fopen('php://temp', 'rw+');
             $this->write($body);
@@ -145,8 +145,8 @@ class Stream implements StreamInterface
      * @param int $offset Stream offset
      * @param int $whence Specifies how the cursor position will be calculated
      *     based on the seek offset. Valid values are identical to the built-in
-     *     PHP $whence values for `fseek()`.  
-     *     SEEK_SET: Set position equal to offset bytes 
+     *     PHP $whence values for `fseek()`.
+     *     SEEK_SET: Set position equal to offset bytes
      *     SEEK_CUR: Set position to current location plus offset
      *     SEEK_END: Set position to end-of-stream plus offset.
      * @throws \RuntimeException on failure.
@@ -168,7 +168,8 @@ class Stream implements StreamInterface
      * @link https://www.php.net/manual/en/function.rewind.php
      * @throws \RuntimeException on failure or ff the stream is not seekable.
      */
-    public function rewind(): void { 
+    public function rewind(): void
+    {
         if (!isset($this->stream))   { throw new \RuntimeException('Stream is detached'); }
         if (!$this->isSeekable())    { throw new \RuntimeException('Stream is not seekable'); }
         if (!\rewind($this->stream)) { throw new \RuntimeException('Could not rewind stream.'); }
@@ -240,7 +241,7 @@ class Stream implements StreamInterface
         $result = \fread($this->stream, $length);
         if (false === $result) { throw new \RuntimeException('Unable to read from stream'); }
 
-        return $result;  
+        return $result;
     }
 
     /**
@@ -256,7 +257,7 @@ class Stream implements StreamInterface
         if (!$this->isReadable()) { throw new \RuntimeException('Stream is not readable'); }
         $result = \stream_get_contents($this->stream);
         if (false === $result) { throw new \RuntimeException('Unable to read from stream'); }
-        return $result;  
+        return $result;
     }
 
     /**
