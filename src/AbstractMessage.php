@@ -19,7 +19,7 @@ use Psr\Http\Message\{MessageInterface, StreamInterface};
  */
 abstract class AbstractMessage implements MessageInterface
 {
-    
+
     /**
      * The string contain only the HTTP version number (e.g., "1.1", "1.0").
      *
@@ -42,7 +42,7 @@ abstract class AbstractMessage implements MessageInterface
      */
     protected StreamInterface|null $body;
 
-    protected function __construct() 
+    protected function __construct()
     {
         $this->protocol = explode('/', $_SERVER['SERVER_PROTOCOL'])[1];
         $this->headers = [
@@ -100,13 +100,13 @@ abstract class AbstractMessage implements MessageInterface
      *     key MUST be a header name, and each value MUST be an array of strings
      *     for that header.
      */
-    public function getHeaders(): array 
-    { 
+    public function getHeaders(): array
+    {
         $result = [];
         foreach ($this->headers as $name => $value) {
             if (!\is_null($value)) { $result[$name] = $value; }
         }
-        return $result; 
+        return $result;
     }
 
     /**
@@ -117,10 +117,10 @@ abstract class AbstractMessage implements MessageInterface
      *     name using a case-insensitive string comparison. Returns false if
      *     no matching header name is found in the message.
      */
-    public function hasHeader($name): bool 
-    { 
+    public function hasHeader($name): bool
+    {
         $name = $this->normalizeHeaderdName($name);
-        return isset($this->headers[$name]); 
+        return isset($this->headers[$name]);
     }
 
     /**
@@ -164,7 +164,7 @@ abstract class AbstractMessage implements MessageInterface
         try {
             $clone = clone $this;
             $clone->setHeaderField($name, $value, true);
-            return $clone;  
+            return $clone;
         } catch (\InvalidArgumentException $e) {
             throw $e;
         }
@@ -183,7 +183,7 @@ abstract class AbstractMessage implements MessageInterface
         try {
             $clone = clone $this;
             $clone->setHeaderField($name, $value);
-            return $clone;  
+            return $clone;
         } catch (\InvalidArgumentException $e) {
             throw $e;
         }
@@ -200,7 +200,7 @@ abstract class AbstractMessage implements MessageInterface
         $clone = clone $this;
         $name  = $this->normalizeHeaderdName($name);
         if ($this->hasHeader($name)) { unset($this->headers[$name]); }
-        return $clone;  
+        return $clone;
     }
 
     /**
@@ -229,16 +229,16 @@ abstract class AbstractMessage implements MessageInterface
     # Protected, non-standard functions #
     #####################################
 
-	/**
-	 * The keys represent the header name as it will be sent over the wire, and
-	 * each value is an array of strings associated with the header.
-	 * 
+    /**
+     * The keys represent the header name as it will be sent over the wire, and
+     * each value is an array of strings associated with the header.
+     *
      * @param string $name Case-insensitive header field name.
      * @param string|string[] $value Header value(s).
      * @param bool $update Is it update of existing field (true) or create new (false)?
-	 * @return AbstractMessage
+     * @return AbstractMessage
      * @throws \InvalidArgumentException for invalid header names or values.
-	 */
+     */
     protected function setHeaderField(string $name, string|array $value, bool $update = false): self
     {
         $field = $this->normalizeHeaderdName($name);
@@ -255,7 +255,7 @@ abstract class AbstractMessage implements MessageInterface
             $this->headers[$field] = \array_merge($this->headers[$field], $headerField);
         }
 
-        return $this; 
+        return $this;
     }
 
     /**

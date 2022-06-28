@@ -12,13 +12,13 @@ class Request extends AbstractMessage implements RequestInterface
 {
 
     /**
-     * The request target, usually a URL, or the absolute path of the protocol, port, 
-     * and domain are usually characterized by the request context. The format of this 
+     * The request target, usually a URL, or the absolute path of the protocol, port,
+     * and domain are usually characterized by the request context. The format of this
      * request target varies between different HTTP methods. It can be
-     *  origin-form: An absolute path, ultimately followed by a '?' and query string. 
-     *   This is the most common form and is used with GET, POST, HEAD, and OPTIONS methods. 
+     *  origin-form: An absolute path, ultimately followed by a '?' and query string.
+     *   This is the most common form and is used with GET, POST, HEAD, and OPTIONS methods.
      *  absolute-form: A complete URL is mostly used with GET when connected to a proxy.
-     *  authority-form: the authority component of a URL, consisting of the domain name and 
+     *  authority-form: the authority component of a URL, consisting of the domain name and
      *   optionally the port. It is only used with CONNECT when setting up an HTTP tunnel.
      *  asterisk-form: "*" is used with OPTIONS method
      *
@@ -40,15 +40,15 @@ class Request extends AbstractMessage implements RequestInterface
      */
     protected UriInterface $uri;
 
-	/**
+    /**
      * The constructor method
-     * 
+     *
      * @param string $method
      * @return self
-     * @throws \InvalidArgumentException if 
+     * @throws \InvalidArgumentException if
      *  $method is not valid HTTP method,
      *  a header name is not valid.
-	 */
+     */
     public function __construct(
         string $method = '',
         array $headers = [],
@@ -99,7 +99,7 @@ class Request extends AbstractMessage implements RequestInterface
 
         try {
             if (empty($headers)) {
-                foreach ($_SERVER as $name => $value) { 
+                foreach ($_SERVER as $name => $value) {
                     if (str_starts_with($name, 'HTTP')) { $this->setHeaderField($name, $value); }
                 }
             } else {
@@ -123,7 +123,7 @@ class Request extends AbstractMessage implements RequestInterface
         } elseif(\is_string($body)) {
             $this->body = new Stream($body);
         }
-	}
+    }
 
     ##########################
     # PSR-7 Public interface #
@@ -152,7 +152,7 @@ class Request extends AbstractMessage implements RequestInterface
         if ($requestTarget === $this->requestTarget) { return $this; }
         $clone = clone $this;
         $clone->requestTarget = $requestTarget;
-        return $clone;  
+        return $clone;
     }
 
     /**
@@ -175,11 +175,11 @@ class Request extends AbstractMessage implements RequestInterface
 
         if (!\preg_match('/^(options|get|head|put|post|delete|patch)$/is', $method)) {
             throw new \InvalidArgumentException($method.' is not a valid HTTP method.');
-        } 
+        }
 
         $clone = clone $this;
         $clone->method = $method;
-        return $clone;  
+        return $clone;
     }
 
     /**
@@ -208,11 +208,11 @@ class Request extends AbstractMessage implements RequestInterface
         $reqHost    = $clone->getHeaderLine('Host');
         $uriHost    = $clone->getUri()->getHost();
 
-        if ((!$preserveHost xor ($preserveHost && empty($reqHost))) && !empty($uriHost)) { 
-            $clone->setHeaderField('Host', $uriHost, true); 
+        if ((!$preserveHost xor ($preserveHost && empty($reqHost))) && !empty($uriHost)) {
+            $clone->setHeaderField('Host', $uriHost, true);
         }
 
-        return $clone;  
+        return $clone;
     }
 
 }
