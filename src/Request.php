@@ -110,13 +110,14 @@ class Request extends AbstractMessage implements RequestInterface
         if($uri instanceof UriInterface) {
             $this->uri = $uri;
         } else {
-            $this->uri = \is_string($uri) ? new Uri($uri) : new Uri();
+            try {
+                $this->uri            = \is_string($uri) ? new Uri($uri) : new Uri();
+                $path                 = $this->uri->getPath();
+                $query                = $this->uri->getQuery();
+                $this->requestTarget  = empty($path) ? '/' : $path;
+                $this->requestTarget .= empty($query) ? '' : '?'.$query;        
+            } catch (\InvalidArgumentException $e) { throw $e; }
         }
-
-        $path                 = $this->uri->getPath();
-        $query                = $this->uri->getQuery();
-        $this->requestTarget  = empty($path) ? '/' : $path;
-        $this->requestTarget .= empty($query) ? '' : '?'.$query;
     }
 
     ##########################

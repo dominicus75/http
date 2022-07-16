@@ -14,9 +14,7 @@ use Psr\Http\Message\StreamInterface;
 class Stream implements StreamInterface
 {
 
-    /**
-     * @var resource|null
-     */
+    /** @var resource|null  */
     protected $stream = null;
 
     /**
