@@ -206,7 +206,7 @@ abstract class AbstractMessage implements MessageInterface
     {
         $clone = clone $this;
         $name  = $this->normalizeHeaderdName($name);
-        if ($this->hasHeader($name)) { unset($this->headers[$name]); }
+        if ($clone->hasHeader($name)) { unset($clone->headers[$name]); }
         return $clone;
     }
 
