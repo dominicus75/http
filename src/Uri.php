@@ -66,8 +66,7 @@ class Uri implements UriInterface
             }
             $uri .= $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? '');
             $uri .= $_SERVER['SERVER_PORT'] ? ':'.$_SERVER['SERVER_PORT'] : '';
-            $uri .= $_SERVER['REQUEST_URI'] ? \str_replace('?'.$_SERVER['QUERY_STRING'], '', $_SERVER['REQUEST_URI']) : '';
-            $uri .= $_SERVER['QUERY_STRING'] ? '?'.$_SERVER['QUERY_STRING'] : '';
+            $uri .= $_SERVER['REQUEST_URI'] ?? '';
         } else {
             $uri = $this->encode($uri);      
         }

@@ -14,5 +14,15 @@
             "name": "dominicus75",
             "email": "domokos.endrejanos@gmail.com"
         }
-    ]
+    ],
+    "autoload": {
+        "psr-4": {
+            "Dominicus75\\Psr7\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Dominicus75\\Psr7\\Tests\\": "tests/"
+        }
+    }
 }
