@@ -9,7 +9,7 @@ class UriTest extends TestCase
 {
     private array $string_input = [
         0 => [
-            'uri'    => 'https://john.doe:pa$$w0rD@127.0.1.1:443/directory/subdirectory/file.html?query0=izé&query1=bigyó#töredék',
+            'uri'    => 'https://john.doe:pa$$w0rD@127.0.1.1/directory/subdirectory/file.html?query0=izé&query1=bigyó#töredék',
             'scheme' => 'https',
             'user'   => 'john.doe',
             'pass'   => 'pa$$w0rD',
@@ -42,7 +42,7 @@ class UriTest extends TestCase
             'fragm'  => 'töredék'
         ],
         3 => [
-            'uri'    => 'http://127.0.1.1:80/directory/subdirectory/file.html?query0=izé&query1=bigyó#töredék',
+            'uri'    => 'http://127.0.1.1/directory/subdirectory/file.html?query0=izé&query1=bigyó#töredék',
             'scheme' => 'http',
             'user'   => null,
             'pass'   => null,
@@ -78,7 +78,7 @@ class UriTest extends TestCase
 
     private array $assertions = [
         0 => [
-            'toString'     => 'https://john.doe:pa$$w0rD@127.0.1.1:443/directory/subdirectory/file.html?query0=iz%C3%A9&query1=bigy%C3%B3#t%C3%B6red%C3%A9k',
+            'toString'     => 'https://john.doe:pa$$w0rD@127.0.1.1/directory/subdirectory/file.html?query0=iz%C3%A9&query1=bigy%C3%B3#t%C3%B6red%C3%A9k',
             'getScheme'    => 'https',
             'getUserInfo'  => 'john.doe:pa$$w0rD',
             'getAuthority' => 'john.doe:pa$$w0rD@127.0.1.1',
@@ -111,10 +111,10 @@ class UriTest extends TestCase
             'getFragment'  => 't%C3%B6red%C3%A9k'
         ],
         3 => [
-            'toString'     => 'http://127.0.1.1:80/directory/subdirectory/file.html?query0=iz%C3%A9&query1=bigy%C3%B3#t%C3%B6red%C3%A9k',
-            'getScheme'    => 'https',
+            'toString'     => 'http://127.0.1.1/directory/subdirectory/file.html?query0=iz%C3%A9&query1=bigy%C3%B3#t%C3%B6red%C3%A9k',
+            'getScheme'    => 'http',
             'getUserInfo'  => '',
-            'getAuthority' => '',
+            'getAuthority' => '127.0.1.1',
             'getHost'      => '127.0.1.1',
             'getPort'      => null,
             'getPath'      => '/directory/subdirectory/file.html',
@@ -125,7 +125,7 @@ class UriTest extends TestCase
             'toString'     => 'http://[::1]:65321/directory/subdirectory/file.html?query0=iz%C3%A9&query1=bigy%C3%B3#t%C3%B6red%C3%A9k',
             'getScheme'    => 'http',
             'getUserInfo'  => '',
-            'getAuthority' => '',
+            'getAuthority' => '[::1]:65321',
             'getHost'      => '[::1]',
             'getPort'      => 65321,
             'getPath'      => '/directory/subdirectory/file.html',
@@ -136,7 +136,7 @@ class UriTest extends TestCase
             'toString'     => 'http://en.localhost.info:456/directory/subdirectory/file.html?query0=iz%C3%A9&query1=bigy%C3%B3#t%C3%B6red%C3%A9k',
             'getScheme'    => 'http',
             'getUserInfo'  => '',
-            'getAuthority' => '',
+            'getAuthority' => 'en.localhost.info:456',
             'getHost'      => 'en.localhost.info',
             'getPort'      => 456,
             'getPath'      => '/directory/subdirectory/file.html',
@@ -150,7 +150,7 @@ class UriTest extends TestCase
         foreach ($this->string_input as $index => $testcase) {
             $uri = new Uri($this->string_input[$index]['uri']);
             $actual = [
-                'toString'     => $uri,
+                'toString'     => (string) $uri,
                 'getScheme'    => $uri->getScheme(),
                 'getUserInfo'  => $uri->getUserInfo(),
                 'getAuthority' => $uri->getAuthority(),
@@ -160,13 +160,16 @@ class UriTest extends TestCase
                 'getQuery'     => $uri->getQuery(),
                 'getFragment'  => $uri->getFragment()    
             ];
-            foreach ($actual as $function => $return) { $this->assertEquals($this->assertions[$function], $return); }
+            foreach ($actual as $function => $return) { 
+                $this->assertEquals($this->assertions[$index][$function], $return, $function); 
+            }
         }
     }
 
-    /*public function testCreateUriFromSuperglobals()
+    public function testCreateUriFromSuperglobals()
     {
         foreach ($this->string_input as $index => $testcase) {
+
             $_SERVER['REQUEST_SCHEME'] = $this->string_input[$index]['scheme'];
             $_SERVER['PHP_AUTH_USER']  = $this->string_input[$index]['user'];
             $_SERVER['PHP_AUTH_PW']    = $this->string_input[$index]['pass'];
@@ -174,9 +177,28 @@ class UriTest extends TestCase
             $_SERVER['SERVER_PORT']    = $this->string_input[$index]['port'];
             $_SERVER['REQUEST_URI']    = $this->assertions[$index]['getPath'];
             $_SERVER['REQUEST_URI']   .= '?'.$this->assertions[$index]['getQuery'];
+            $_SERVER['REQUEST_URI']   .= '#'.$this->assertions[$index]['getFragment'];
+
+            $uri    = new Uri();
+            $actual = [
+                'toString'     => (string) $uri,
+                'getScheme'    => $uri->getScheme(),
+                'getUserInfo'  => $uri->getUserInfo(),
+                'getAuthority' => $uri->getAuthority(),
+                'getHost'      => $uri->getHost(),
+                'getPort'      => $uri->getPort(),
+                'getPath'      => $uri->getPath(),
+                'getQuery'     => $uri->getQuery(),
+                'getFragment'  => $uri->getFragment()    
+            ];
+
+            foreach ($actual as $function => $return) { 
+                $this->assertEquals($this->assertions[$index][$function], $return, $function); 
+            }
 
         }
-    }*/
+
+    }
 
 
 }
