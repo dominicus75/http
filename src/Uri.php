@@ -18,7 +18,7 @@ class Uri implements UriInterface
     private static $schemes = [80 => 'http', 443 => 'https'];
 
     private static $patterns = [
-        'scheme'    => "(https?\:\/\/)?",
+        'scheme'    => "(https?\:)?\/\/",
         'userinfo'  => "([\w\-\.~!\$&\'\(\)\*\+,;=%]+(\:[\w\-\.~!\$&\'\(\)\*\+,;=%]+)?@)?",
         'host'      => "((([\d]{1,3})\.([\d]{1,3})\.([\d]{1,3})\.([\d]{1,3}))|(\[[A-Fa-f0-9\:]{3,39}\])|([\w\-\.~%]{3,253}))",
         'port'      => "(\:[\d]{2,5})?",
@@ -58,23 +58,29 @@ class Uri implements UriInterface
     public function __construct(string $uri = '')
     {
         if (empty($uri)) {
-            $uri  = $_SERVER['REQUEST_SCHEME'] ? $_SERVER['REQUEST_SCHEME'].'://' : '';
+            $encodedUri  = $_SERVER['REQUEST_SCHEME'] ? $_SERVER['REQUEST_SCHEME'].'://' : '//';
             if (!empty($_SERVER['PHP_AUTH_USER']) && !empty($_SERVER['PHP_AUTH_PW'])) { 
-                $uri .= $_SERVER['PHP_AUTH_USER'].':'.$_SERVER['PHP_AUTH_PW'].'@';
+                $encodedUri .= $_SERVER['PHP_AUTH_USER'].':'.$_SERVER['PHP_AUTH_PW'].'@';
             } elseif (!empty($_SERVER['PHP_AUTH_USER'])) {
-                $uri .= $_SERVER['PHP_AUTH_USER'].'@';
+                $encodedUri .= $_SERVER['PHP_AUTH_USER'].'@';
             }
-            $uri .= $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? '');
-            $uri .= $_SERVER['SERVER_PORT'] ? ':'.$_SERVER['SERVER_PORT'] : '';
-            $uri .= $_SERVER['REQUEST_URI'] ?? '';
+            $encodedUri .= $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? '');
+            $encodedUri .= $_SERVER['SERVER_PORT'] ? ':'.$_SERVER['SERVER_PORT'] : '';
+            $encodedUri .= $_SERVER['REQUEST_URI'] ?? '';
         } else {
-            $uri = $this->encode($uri);      
+            $encodedUri = $this->encode($uri);      
         }
 
-        if (!$this->validateUri($uri))  {
+        if ($this->validateUri($encodedUri)) {
+            $components = \parse_url($encodedUri);
+        } else {
             throw new \InvalidArgumentException($uri.' is not a valid URI');
-        } elseif (false === $components = \parse_url($uri)) {
-            throw new \InvalidArgumentException('Parsing of '.$uri.' failed');
+        }
+        
+        if (false === $components) {
+            throw new \InvalidArgumentException($uri.' is not a valid URI');
+        } elseif(!\is_array($components)) {
+            throw new \InvalidArgumentException($uri.' is not a valid URI');
         }
 
         try {
@@ -318,7 +324,7 @@ class Uri implements UriInterface
      */
     public function __toString(): string 
     { 
-        $result  = !empty($this->scheme) ? $this->scheme.'://' : '';
+        $result  = !empty($this->scheme) ? $this->scheme.'://' : '//';
         $authority = $this->getAuthority();
         $result .= !empty($authority) ? $authority : '';
         $result .= !empty($this->path) ? $this->path : (!empty($authority) ? '/' : '');
