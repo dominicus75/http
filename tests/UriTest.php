@@ -225,14 +225,29 @@ class UriTest extends TestCase
     private array $invalid_uris = [
         'https:/john.doe:pa$$w0rD@127:0:1:1:70000/directory/subdirectory/file.html?query0=izé&query1=bigyó#töredék',
         'http://',
-        'http://host:with:colon'
+        'http://host:with:colon',
+        'http://example.com:-1',
+        'http://example.com:0'
     ];
+
+    protected function setUp(): void
+    {
+        $_SERVER['REQUEST_SCHEME'] = 'http';
+        $_SERVER['PHP_AUTH_USER']  = 'gipsz.jakab';
+        $_SERVER['PHP_AUTH_PW']    = 'pa$$w0rD';
+        $_SERVER['HTTP_HOST']      = 'hu.wikipedia.org';
+        $_SERVER['SERVER_PORT']    = 80;
+        $_SERVER['REQUEST_URI']    = '/directory/subdirectory/file.html';
+        $_SERVER['REQUEST_URI']   .= '?query0=iz%C3%A9&query1=bigy%C3%B3';
+        $_SERVER['REQUEST_URI']   .= '#t%C3%B6red%C3%A9k';
+    }
 
 
     public function testCreateUriFromGivenString()
     {
         foreach ($this->string_input as $index => $testcase) {
-            $uri = new Uri($this->string_input[$index]['uri']);
+            $uri = new Uri($testcase['uri']);
+            $this->assertInstanceOf('Psr\Http\Message\UriInterface', $uri);
             $actual = [
                 'toString'     => (string) $uri,
                 'getScheme'    => $uri->getScheme(),
@@ -254,11 +269,11 @@ class UriTest extends TestCase
     {
         foreach ($this->string_input as $index => $testcase) {
 
-            $_SERVER['REQUEST_SCHEME'] = $this->string_input[$index]['scheme'];
-            $_SERVER['PHP_AUTH_USER']  = $this->string_input[$index]['user'];
-            $_SERVER['PHP_AUTH_PW']    = $this->string_input[$index]['pass'];
+            $_SERVER['REQUEST_SCHEME'] = $testcase['scheme'];
+            $_SERVER['PHP_AUTH_USER']  = $testcase['user'];
+            $_SERVER['PHP_AUTH_PW']    = $testcase['pass'];
             $_SERVER['HTTP_HOST']      = $this->assertions[$index]['getHost'];
-            $_SERVER['SERVER_PORT']    = $this->string_input[$index]['port'];
+            $_SERVER['SERVER_PORT']    = $testcase['port'];
             $_SERVER['REQUEST_URI']    = $this->assertions[$index]['getPath'];
             $_SERVER['REQUEST_URI']   .= !empty($this->assertions[$index]['getQuery']) ? '?'.$this->assertions[$index]['getQuery'] : '';
             $_SERVER['REQUEST_URI']   .= !empty($this->assertions[$index]['getFragment']) ? '#'.$this->assertions[$index]['getFragment'] : '';
@@ -275,6 +290,8 @@ class UriTest extends TestCase
                 'getQuery'     => $uri->getQuery(),
                 'getFragment'  => $uri->getFragment()    
             ];
+
+            $this->assertInstanceOf('Psr\Http\Message\UriInterface', $uri);
 
             foreach ($actual as $function => $return) { 
                 $this->assertEquals($this->assertions[$index][$function], $return, $function.", ".$index.\var_export($_SERVER, true)); 
@@ -306,6 +323,130 @@ class UriTest extends TestCase
             $this->expectExceptionMessage($port.' is not a valid port number');
             (new Uri('https://example.com/path'))->withPort($port);
         }
+    }
+
+    public function testWithPortCannotBeNegative()
+    {
+        $uri = new Uri();
+        for ($port = -1; $port >= -10; $port--) {
+            $this->expectException(\InvalidArgumentException::class);
+            $this->expectExceptionMessage($port.' is not a valid port number');
+            $uri->withPort($port);
+        }
+    }
+
+    public function testSchemeMustHaveCorrectType()
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Scheme must be a string');
+        $uri = new Uri();
+        $uri->withScheme([]);
+        $uri->withScheme(1984);
+        $uri->withScheme(true);
+    }
+
+    public function testUserInfoMustHaveCorrectType()
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Userinfo must be a string');
+        $uri = new Uri();
+        $uri->withUserInfo('user', false);
+        $uri->withUserInfo(true, 1234);
+        $uri->withUserInfo(123, false);
+    }
+
+    public function testHostMustHaveCorrectType()
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Host must be a string');
+        $uri = new Uri();
+        $uri->withHost([]);
+        $uri->withHost(1234);
+        $uri->withHost(false);
+    }
+
+    public function testPathMustHaveCorrectType()
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Path must be a string');
+        $uri = new Uri();
+        $uri->withPath([]);
+        $uri->withPath(1234);
+        $uri->withPath(false);
+    }
+
+    public function testQueryMustHaveCorrectType()
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Query must be a string');
+        $uri = new Uri();
+        $uri->withQuery([]);
+        $uri->withQuery(1234);
+        $uri->withQuery(false);
+    }
+
+    public function testFragmentMustHaveCorrectType()
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Fragment must be a string');
+        $uri = new Uri();
+        $uri->withFragment([]);
+        $uri->withFragment(1234);
+        $uri->withFragment(false);
+    }
+
+    public function testSchemeIsNormalizedToLowercase()
+    {
+        $uri = new Uri('HTTP://example.com');
+
+        $this->assertSame('http', $uri->getScheme());
+        $this->assertSame('http://example.com', (string) $uri);
+
+        $uri->withScheme('HTTP');
+
+        $this->assertSame('http', $uri->getScheme());
+        $this->assertSame('http://example.com', (string) $uri);
+    }
+
+    public function testHostIsNormalizedToLowercase()
+    {
+        $uri = new Uri('//eXaMpLe.CoM');
+
+        $this->assertSame('example.com', $uri->getHost());
+        $this->assertSame('//example.com', (string) $uri);
+
+        $uri->withHost('eXaMpLe.CoM');
+
+        $this->assertSame('example.com', $uri->getHost());
+        $this->assertSame('//example.com', (string) $uri);
+    }
+
+    public function testPortIsNullIfStandardPortForScheme()
+    {
+        // HTTPS standard port
+        $uri = new Uri('https://example.com:443');
+        $this->assertNull($uri->getPort());
+        $this->assertSame('example.com', $uri->getAuthority());
+
+        $uri = (new Uri('https://example.com'))->withPort(443);
+        $this->assertNull($uri->getPort());
+        $this->assertSame('example.com', $uri->getAuthority());
+
+        // HTTP standard port
+        $uri = new Uri('http://example.com:80');
+        $this->assertNull($uri->getPort());
+        $this->assertSame('example.com', $uri->getAuthority());
+
+        $uri = (new Uri('http://example.com'))->withPort(80);
+        $this->assertNull($uri->getPort());
+        $this->assertSame('example.com', $uri->getAuthority());
+    }
+
+    public function testPortIsReturnedIfSchemeUnknown()
+    {
+        $uri = (new Uri('//example.com'))->withPort(80);
+        $this->assertSame(80, $uri->getPort());
+        $this->assertSame('example.com:80', $uri->getAuthority());
     }
 
 }

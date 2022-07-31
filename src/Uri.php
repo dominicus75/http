@@ -91,7 +91,11 @@ class Uri implements UriInterface
             $this->setPath($components['path'] ?? '');
             $this->setQuery($components['query'] ?? '');
             $this->setFragment($components['fragment'] ?? '');
-        } catch (\InvalidArgumentException $e) { throw $e; }
+        } catch (\InvalidArgumentException $e) { 
+            throw $e; 
+        } catch (\TypeError $te) {
+            throw new \InvalidArgumentException($te->getMessage());
+        }
     }
 
     ##########################
@@ -194,11 +198,15 @@ class Uri implements UriInterface
     public function withScheme($scheme): Uri
     {
         if ($scheme === $this->scheme) { return $this; }
-        $clone = clone $this;
         try {
+            $clone = clone $this;
             $clone->setScheme($scheme);
             return $clone;
-        } catch (\InvalidArgumentException $e) { throw $e; }
+        } catch (\InvalidArgumentException $e) { 
+            throw $e; 
+        } catch (\TypeError $te) {
+            throw new \InvalidArgumentException('Scheme must be a string');
+        }
     }
 
     /**
@@ -208,13 +216,18 @@ class Uri implements UriInterface
      * string for the user is equivalent to removing user information.
      * @param null|string $password The password associated with $user.
      * @return static A new instance with the specified user information.
+     * @throws \InvalidArgumentException for invalid userinfo.
      */
     public function withUserInfo($user, $password = null): Uri
     {
-        if ($this->userInfo == $user.(!empty($password) ? ':'.$password : '')) { return $this; }
-        $clone = clone $this;
-        $clone->setUserInfo($user, $password);
-        return $clone;
+        if ($this->userInfo === $user.(!empty($password) ? ':'.$password : '')) { return $this; }
+        try {
+            $clone = clone $this;
+            $clone->setUserInfo($user, $password);
+            return $clone;
+        } catch (\TypeError $te) {
+            throw new \InvalidArgumentException('Userinfo must be a string');
+        }
     }
 
     /**
@@ -228,11 +241,15 @@ class Uri implements UriInterface
     public function withHost($host): Uri 
     {
         if ($host === $this->host) { return $this; }
-        $clone = clone $this;
         try {
+            $clone = clone $this;
             $clone->setHost($host);
             return $clone;
-        } catch (\InvalidArgumentException $e) { throw $e; }
+        } catch (\InvalidArgumentException $e) { 
+            throw $e; 
+        } catch (\TypeError $te) {
+            throw new \InvalidArgumentException('Host must be a string');
+        }
     }
 
     /**
@@ -246,11 +263,15 @@ class Uri implements UriInterface
     public function withPort($port): Uri
     {
         if ($port === $this->port) { return $this; }
-        $clone = clone $this;
         try {
+            $clone = clone $this;
             $clone->setPort($port);
             return $clone;
-        } catch (\InvalidArgumentException $e) { throw $e; }
+        } catch (\InvalidArgumentException $e) { 
+            throw $e; 
+        } catch (\TypeError $te) {
+            throw new \InvalidArgumentException('Port must be an integer or null');
+        }
     }
 
     /**
@@ -258,16 +279,18 @@ class Uri implements UriInterface
      *
      * @param string $path The path to use with the new instance.
      * @return static A new instance with the specified path.
-     * @throws \InvalidArgumentException for invalid paths.
+     * @throws \InvalidArgumentException for invalid datatype.
      */
     public function withPath($path): Uri
     {
         if ($path === $this->path) { return $this; }
-        $clone = clone $this;
         try {
+            $clone = clone $this;
             $clone->setPath($path);
             return $clone;
-        } catch (\InvalidArgumentException $e) { throw $e; }
+        } catch (\TypeError $te) {
+            throw new \InvalidArgumentException('Path must be a string');
+        }
     }
 
     /**
@@ -276,16 +299,18 @@ class Uri implements UriInterface
      * @param string $query The query string to use with the new instance.
      * An empty query string value is equivalent to removing the query string.
      * @return static A new instance with the specified query string.
-     * @throws \InvalidArgumentException for invalid query strings.
+     * @throws \InvalidArgumentException for invalid datatype.
      */
     public function withQuery($query): Uri
     {
         if ($query === $this->query) { return $this; }
-        $clone = clone $this;
         try {
+            $clone = clone $this;
             $clone->setQuery($query);
             return $clone;
-        } catch (\InvalidArgumentException $e) { throw $e; }
+        } catch (\TypeError $te) {
+            throw new \InvalidArgumentException('Query must be a string');
+        }
     }
 
     /**
@@ -294,13 +319,18 @@ class Uri implements UriInterface
      * @param string $fragment The fragment to use with the new instance.
      * An empty fragment value is equivalent to removing the fragment.
      * @return static A new instance with the specified fragment.
+     * @throws \InvalidArgumentException for invalid datatype.
      */
     public function withFragment($fragment): Uri
     {
         if ($fragment === $this->fragment) { return $this; }
-        $clone = clone $this;
-        $clone->setFragment($fragment);
-        return $clone;
+        try {
+            $clone = clone $this;
+            $clone->setFragment($fragment);
+            return $clone;
+        } catch (\TypeError $te) {
+            throw new \InvalidArgumentException('Fragment must be a string');
+        }
     }
 
     /**
@@ -324,12 +354,11 @@ class Uri implements UriInterface
      */
     public function __toString(): string 
     { 
-        $result  = !empty($this->scheme) ? $this->scheme.'://' : '//';
-        $authority = $this->getAuthority();
-        $result .= !empty($authority) ? $authority : '';
-        $result .= !empty($this->path) ? $this->path : (!empty($authority) ? '/' : '');
-        $result .= !empty($this->query) ? '?'.$this->query : '';
-        $result .= !empty($this->fragment) ? '#'.$this->fragment : '';
+        $result  = !empty($this->scheme)         ? $this->scheme.'://'   : '//';
+        $result .= !empty($this->getAuthority()) ? $this->getAuthority() : ''  ;
+        $result .= !empty($this->path)           ? $this->path           : ''  ;
+        $result .= !empty($this->query)          ? '?'.$this->query      : ''  ;
+        $result .= !empty($this->fragment)       ? '#'.$this->fragment   : ''  ;
         return $result; 
     }
 
@@ -393,10 +422,10 @@ class Uri implements UriInterface
      * Sets the user information component of the URI.
 	 * 
 	 * @param string $user
-     * @param string $pass
+     * @param string|null $pass
 	 * @return Uri
 	 */
-	protected function setUserInfo(string $user, string $pass): self 
+	protected function setUserInfo(string $user, ?string $pass = null): self 
     {
         if (!empty($user) && !empty($pass)) { 
             $this->userInfo = $user.':'.$pass;
@@ -404,7 +433,7 @@ class Uri implements UriInterface
             $this->userInfo = $user;
         } else { 
             $this->userInfo = '';
-         }
+        }
         return $this;
 	}
 
