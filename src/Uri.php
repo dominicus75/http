@@ -399,14 +399,14 @@ class Uri implements UriInterface
 		return $result;
     }
 
-	/**
+    /**
      * Sets the scheme component of the URI.
-	 * 
-	 * @param string $scheme 
-	 * @return Uri
+     * 
+     * @param string $scheme 
+     * @return Uri
      * @throws \InvalidArgumentException for invalid scheme.
-	 */
-	protected function setScheme(string $scheme): self 
+     */
+    protected function setScheme(string $scheme): self 
     {
         if (empty($scheme)) { 
             $this->scheme = '';
@@ -416,16 +416,16 @@ class Uri implements UriInterface
             throw new \InvalidArgumentException($scheme.' is not a valid scheme');
         }
         return $this;
-	}
+    }
     
-	/**
+    /**
      * Sets the user information component of the URI.
-	 * 
-	 * @param string $user
+     * 
+     * @param string $user
      * @param string|null $pass
-	 * @return Uri
-	 */
-	protected function setUserInfo(string $user, ?string $pass = null): self 
+     * @return Uri
+     */
+    protected function setUserInfo(string $user, ?string $pass = null): self 
     {
         if (!empty($user) && !empty($pass)) { 
             $this->userInfo = $user.':'.$pass;
@@ -435,16 +435,16 @@ class Uri implements UriInterface
             $this->userInfo = '';
         }
         return $this;
-	}
+    }
 
-	/**
+    /**
      * Sets the host component of the URI.
-	 * 
-	 * @param string $host 
-	 * @return Uri
+     * 
+     * @param string $host 
+     * @return Uri
      * @throws \InvalidArgumentException for invalid host.
-	 */
-	protected function setHost(string $host): self 
+     */
+    protected function setHost(string $host): self 
     {
         $host = \strtolower($host);
         if (\preg_match(self::$patterns['host'], $host) xor empty($host)) {
@@ -453,16 +453,16 @@ class Uri implements UriInterface
         } else {
             throw new \InvalidArgumentException($host.' is not a valid host name');
         }
-	}
+    }
 
-	/**
+    /**
      * Sets the port component of the URI.
-	 * 
-	 * @param int|null $port 
-	 * @return Uri
+     * 
+     * @param int|null $port 
+     * @return Uri
      * @throws \InvalidArgumentException for invalid port number.
-	 */
-	protected function setPort(int|null $port): self
+     */
+    protected function setPort(int|null $port): self
     {
         if (\is_null($port) || (isset(self::$schemes[$port]) && self::$schemes[$port] === $this->scheme)) {
             $this->port = null;
@@ -472,15 +472,15 @@ class Uri implements UriInterface
             throw new \InvalidArgumentException($port.' is not a valid port number');
         }
         return $this;
-	}
+    }
 
-	/**
+    /**
      * Sets the path component of the URI.
-	 * 
-	 * @param string $path 
-	 * @return Uri
-	 */
-	protected function setPath(string $path): self 
+     * 
+     * @param string $path 
+     * @return Uri
+     */
+    protected function setPath(string $path): self 
     {
         if (!empty($path)) {
             $this->path = $this->encode($path);
@@ -488,39 +488,39 @@ class Uri implements UriInterface
             $this->path = '';
         }
         return $this;
-	}
+    }
 
-	/**
+    /**
      * Sets the query string component of the URI.
-	 * 
-	 * @param string $query 
-	 * @return Uri
+     * 
+     * @param string $query 
+     * @return Uri
      * @throws \InvalidArgumentException for invalid query strings.
-	 */
-	protected function setQuery(string $query): self 
+     */
+    protected function setQuery(string $query): self 
     {
         if (!empty($query)) {
             $this->query = $this->encode($query);
         } else {
             $this->query = '';
         }
-		return $this;
-	}
+        return $this;
+    }
 
-	/**
+    /**
      * Sets the fragment component of the URI.
-	 * 
-	 * @param string $fragment 
-	 * @return Uri
-	 */
-	protected function setFragment(string $fragment): self 
+     * 
+     * @param string $fragment 
+     * @return Uri
+     */
+    protected function setFragment(string $fragment): self 
     {
         if (!empty($fragment)) {
             $this->fragment = $this->encode($fragment);
         } else {
             $this->fragment = '';
         }
-		return $this;
-	}
+        return $this;
+    }
 
 }
