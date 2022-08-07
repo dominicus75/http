@@ -5,19 +5,13 @@ namespace Dominicus75\Psr7\Tests;
 use Dominicus75\Psr7\Uri;
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @covers Dominicus75\Psr7\Uri
+ * Based on Tobias Nyholm's work
+ * @see https://github.com/Nyholm/psr7/blob/master/tests/UriTest.php
+ */
 class UriTest extends TestCase
 {
-
-    const ABS_IPV4_DEFTPORT_UTF8_HASALL  = 0;
-    const ABS_IPV6_ELSEPORT_UTF8_HASALL  = 1;
-    const ABS_DOMA_ELSEPORT_UTF8_HASALL  = 2;
-    const REL_IPV4_DEFTPORT_UTF8_NOTAUT  = 3;
-    const REL_IPV6_ELSEPORT_UTF8_NOTAUT  = 4;
-    const REL_DOMA_ELSEPORT_UTF8_NOTAUT  = 5;
-    const REL_DOMA_ELSEPORT_ASCI_NOTAUT  = 6;
-    const REL_DOMA_ELSEPORT_ASCI_NOTAQF  = 7;
-    const REL_DOMA_DEFTPORT_ASCI_NOTSAQF = 8;
-
     private array $string_input = [
         0 => [
             'uri'    => 'https://john.doe:pa$$w0rD@127.0.1.1/directory/subdirectory/file.html?query0=izé&query1=bigyó#töredék',
@@ -222,6 +216,211 @@ class UriTest extends TestCase
         ]
     ];
 
+    private array $global_input = [
+        0 => [
+            'uri'    => 'https://john.doe:pa$$w0rD@127.0.1.1/directory/subdirectory/file.html?query0=izé&query1=bigyó',
+            'scheme' => 'https',
+            'user'   => 'john.doe',
+            'pass'   => 'pa$$w0rD',
+            'host'   => '127.0.1.1',
+            'port'   => 443,
+            'path'   => '/directory/subdirectory/file.html',
+            'query'  => 'query0=izé&query1=bigyó',
+            'fragm'  => null
+        ],
+        1 => [
+            'uri'    => 'https://john.doe:pa$$w0rD@[fe80::202:b3ff:fe1e:8329]:65321/directory/subdirectory/file.html?query0=izé&query1=bigyó',
+            'scheme' => 'https',
+            'user'   => 'john.doe',
+            'pass'   => 'pa$$w0rD',
+            'host'   => '[fe80::202:b3ff:fe1e:8329]',
+            'port'   => 65321,
+            'path'   => '/directory/subdirectory/file.html',
+            'query'  => 'query0=izé&query1=bigyó',
+            'fragm'  => null
+        ],
+        2 => [
+            'uri'    => 'https://john.doe:pa$$w0rD@en.localhost.info:456/directory/subdirectory/file.html?query0=izé&query1=bigyó',
+            'scheme' => 'https',
+            'user'   => 'john.doe',
+            'pass'   => 'pa$$w0rD',
+            'host'   => 'en.localhost.info',
+            'port'   => 456,
+            'path'   => '/directory/subdirectory/file.html',
+            'query'  => 'query0=izé&query1=bigyó',
+            'fragm'  => null
+        ],
+        3 => [
+            'uri'    => 'http://127.0.1.1/directory/subdirectory/file.html?query0=izé&query1=bigyó',
+            'scheme' => 'http',
+            'user'   => null,
+            'pass'   => null,
+            'host'   => '127.0.1.1',
+            'port'   => 80,
+            'path'   => '/directory/subdirectory/file.html',
+            'query'  => 'query0=izé&query1=bigyó',
+            'fragm'  => null
+        ],
+        4 => [
+            'uri'    => 'http://[::1]:65321/directory/subdirectory/file.html?query0=izé&query1=bigyó',
+            'scheme' => 'http',
+            'user'   => null,
+            'pass'   => null,
+            'host'   => '[::1]',
+            'port'   => 65321,
+            'path'   => '/directory/subdirectory/file.html',
+            'query'  => 'query0=izé&query1=bigyó',
+            'fragm'  => null
+        ],
+        5 => [
+            'uri'    => 'http://en.localhost.info:456/directory/subdirectory/file.html?query0=izé&query1=bigyó',
+            'scheme' => 'http',
+            'user'   => null,
+            'pass'   => null,
+            'host'   => 'en.localhost.info',
+            'port'   => 456,
+            'path'   => '/directory/subdirectory/file.html',
+            'query'  => 'query0=izé&query1=bigyó',
+            'fragm'  => null
+        ],
+        6 => [
+            'uri'    => 'http://en.localhost.info:456/directory/subdirectory/file.html?query0=foo&query1=baz',
+            'scheme' => 'http',
+            'user'   => null,
+            'pass'   => null,
+            'host'   => 'en.localhost.info',
+            'port'   => 456,
+            'path'   => '/directory/subdirectory/file.html',
+            'query'  => 'query0=foo&query1=baz',
+            'fragm'  => null
+        ],
+        7 => [
+            'uri'    => 'http://en.localhost.info:456/directory/subdirectory/file.html',
+            'scheme' => 'http',
+            'user'   => null,
+            'pass'   => null,
+            'host'   => 'en.localhost.info',
+            'port'   => 456,
+            'path'   => '/directory/subdirectory/file.html',
+            'query'  => null,
+            'fragm'  => null
+        ],
+        8 => [
+            'uri'    => '//en.localhost.info/directory/subdirectory/file.html',
+            'scheme' => '',
+            'user'   => null,
+            'pass'   => null,
+            'host'   => 'en.localhost.info',
+            'port'   => null,
+            'path'   => '/directory/subdirectory/file.html',
+            'query'  => null,
+            'fragm'  => null
+        ]
+    ];
+
+    private array $global_assertions = [
+        0 => [
+            'toString'     => 'https://john.doe:pa$$w0rD@127.0.1.1/directory/subdirectory/file.html?query0=iz%C3%A9&query1=bigy%C3%B3',
+            'getScheme'    => 'https',
+            'getUserInfo'  => 'john.doe:pa$$w0rD',
+            'getAuthority' => 'john.doe:pa$$w0rD@127.0.1.1',
+            'getHost'      => '127.0.1.1',
+            'getPort'      => null,
+            'getPath'      => '/directory/subdirectory/file.html',
+            'getQuery'     => 'query0=iz%C3%A9&query1=bigy%C3%B3',
+            'getFragment'  => ''
+        ],
+        1 => [
+            'toString'     => 'https://john.doe:pa$$w0rD@[fe80::202:b3ff:fe1e:8329]:65321/directory/subdirectory/file.html?query0=iz%C3%A9&query1=bigy%C3%B3',
+            'getScheme'    => 'https',
+            'getUserInfo'  => 'john.doe:pa$$w0rD',
+            'getAuthority' => 'john.doe:pa$$w0rD@[fe80::202:b3ff:fe1e:8329]:65321',
+            'getHost'      => '[fe80::202:b3ff:fe1e:8329]',
+            'getPort'      => 65321,
+            'getPath'      => '/directory/subdirectory/file.html',
+            'getQuery'     => 'query0=iz%C3%A9&query1=bigy%C3%B3',
+            'getFragment'  => ''
+        ],
+        2 => [
+            'toString'     => 'https://john.doe:pa$$w0rD@en.localhost.info:456/directory/subdirectory/file.html?query0=iz%C3%A9&query1=bigy%C3%B3',
+            'getScheme'    => 'https',
+            'getUserInfo'  => 'john.doe:pa$$w0rD',
+            'getAuthority' => 'john.doe:pa$$w0rD@en.localhost.info:456',
+            'getHost'      => 'en.localhost.info',
+            'getPort'      => 456,
+            'getPath'      => '/directory/subdirectory/file.html',
+            'getQuery'     => 'query0=iz%C3%A9&query1=bigy%C3%B3',
+            'getFragment'  => ''
+        ],
+        3 => [
+            'toString'     => 'http://127.0.1.1/directory/subdirectory/file.html?query0=iz%C3%A9&query1=bigy%C3%B3',
+            'getScheme'    => 'http',
+            'getUserInfo'  => '',
+            'getAuthority' => '127.0.1.1',
+            'getHost'      => '127.0.1.1',
+            'getPort'      => null,
+            'getPath'      => '/directory/subdirectory/file.html',
+            'getQuery'     => 'query0=iz%C3%A9&query1=bigy%C3%B3',
+            'getFragment'  => ''
+        ],
+        4 => [
+            'toString'     => 'http://[::1]:65321/directory/subdirectory/file.html?query0=iz%C3%A9&query1=bigy%C3%B3',
+            'getScheme'    => 'http',
+            'getUserInfo'  => '',
+            'getAuthority' => '[::1]:65321',
+            'getHost'      => '[::1]',
+            'getPort'      => 65321,
+            'getPath'      => '/directory/subdirectory/file.html',
+            'getQuery'     => 'query0=iz%C3%A9&query1=bigy%C3%B3',
+            'getFragment'  => ''
+        ],
+        5 => [
+            'toString'     => 'http://en.localhost.info:456/directory/subdirectory/file.html?query0=iz%C3%A9&query1=bigy%C3%B3',
+            'getScheme'    => 'http',
+            'getUserInfo'  => '',
+            'getAuthority' => 'en.localhost.info:456',
+            'getHost'      => 'en.localhost.info',
+            'getPort'      => 456,
+            'getPath'      => '/directory/subdirectory/file.html',
+            'getQuery'     => 'query0=iz%C3%A9&query1=bigy%C3%B3',
+            'getFragment'  => ''
+        ],
+        6 => [
+            'toString'     => 'http://en.localhost.info:456/directory/subdirectory/file.html?query0=foo&query1=baz',
+            'getScheme'    => 'http',
+            'getUserInfo'  => '',
+            'getAuthority' => 'en.localhost.info:456',
+            'getHost'      => 'en.localhost.info',
+            'getPort'      => 456,
+            'getPath'      => '/directory/subdirectory/file.html',
+            'getQuery'     => 'query0=foo&query1=baz',
+            'getFragment'  => ''
+        ],
+        7 => [
+            'toString'     => 'http://en.localhost.info:456/directory/subdirectory/file.html',
+            'getScheme'    => 'http',
+            'getUserInfo'  => '',
+            'getAuthority' => 'en.localhost.info:456',
+            'getHost'      => 'en.localhost.info',
+            'getPort'      => 456,
+            'getPath'      => '/directory/subdirectory/file.html',
+            'getQuery'     => '',
+            'getFragment'  => ''
+        ],
+        8 => [
+            'toString'     => '//en.localhost.info/directory/subdirectory/file.html',
+            'getScheme'    => '',
+            'getUserInfo'  => '',
+            'getAuthority' => 'en.localhost.info',
+            'getHost'      => 'en.localhost.info',
+            'getPort'      => null,
+            'getPath'      => '/directory/subdirectory/file.html',
+            'getQuery'     => '',
+            'getFragment'  => ''
+        ]
+    ];
+
+
     private array $invalid_uris = [
         'https:/john.doe:pa$$w0rD@127:0:1:1:70000/directory/subdirectory/file.html?query0=izé&query1=bigyó#töredék',
         'http://',
@@ -239,9 +438,31 @@ class UriTest extends TestCase
         $_SERVER['SERVER_PORT']    = 80;
         $_SERVER['REQUEST_URI']    = '/directory/subdirectory/file.html';
         $_SERVER['REQUEST_URI']   .= '?query0=iz%C3%A9&query1=bigy%C3%B3';
-        $_SERVER['REQUEST_URI']   .= '#t%C3%B6red%C3%A9k';
-    }
+        $_SERVER['QUERY_STRING']   = 'query0=iz%C3%A9&query1=bigy%C3%B3';
 
+        $this->global_input[9] = [
+            'uri'    => 'http://gipsz.jakab:pa$$w0rD@hu.wikipedia.org/directory/subdirectory/file.html?query0=izé&query1=bigyó',
+            'scheme' => 'http',
+            'user'   => 'gipsz.jakab',
+            'pass'   => 'pa$$w0rD',
+            'host'   => 'hu.wikipedia.org',
+            'port'   => 80,
+            'path'   => '/directory/subdirectory/file.html',
+            'query'  => 'query0=izé&query1=bigyó',
+            'fragm'  => null
+        ];
+        $this->global_assertions[9] = [
+            'toString'     => 'http://gipsz.jakab:pa$$w0rD@hu.wikipedia.org/directory/subdirectory/file.html?query0=iz%C3%A9&query1=bigy%C3%B3',
+            'getScheme'    => 'http',
+            'getUserInfo'  => 'gipsz.jakab:pa$$w0rD',
+            'getAuthority' => 'gipsz.jakab:pa$$w0rD@hu.wikipedia.org',
+            'getHost'      => 'hu.wikipedia.org',
+            'getPort'      => null,
+            'getPath'      => '/directory/subdirectory/file.html',
+            'getQuery'     => 'query0=iz%C3%A9&query1=bigy%C3%B3',
+            'getFragment'  => ''
+        ];
+    }
 
     public function testCreateUriFromGivenString()
     {
@@ -267,18 +488,18 @@ class UriTest extends TestCase
 
     public function testCreateUriFromSuperglobals()
     {
-        foreach ($this->string_input as $index => $testcase) {
+        foreach ($this->global_input as $index => $testcase) {
 
             $_SERVER['REQUEST_SCHEME'] = $testcase['scheme'];
             $_SERVER['PHP_AUTH_USER']  = $testcase['user'];
             $_SERVER['PHP_AUTH_PW']    = $testcase['pass'];
-            $_SERVER['HTTP_HOST']      = $this->assertions[$index]['getHost'];
+            $_SERVER['HTTP_HOST']      = $this->global_assertions[$index]['getHost'];
             $_SERVER['SERVER_PORT']    = $testcase['port'];
-            $_SERVER['REQUEST_URI']    = $this->assertions[$index]['getPath'];
-            $_SERVER['REQUEST_URI']   .= !empty($this->assertions[$index]['getQuery']) ? '?'.$this->assertions[$index]['getQuery'] : '';
-            $_SERVER['REQUEST_URI']   .= !empty($this->assertions[$index]['getFragment']) ? '#'.$this->assertions[$index]['getFragment'] : '';
+            $_SERVER['REQUEST_URI']    = $this->global_assertions[$index]['getPath'];
+            $_SERVER['REQUEST_URI']   .= !empty($this->global_assertions[$index]['getQuery']) ? '?'.$this->global_assertions[$index]['getQuery'] : '';
+            $_SERVER['QUERY_STRING']   = !empty($this->global_assertions[$index]['getQuery']) ? $this->global_assertions[$index]['getQuery'] : '';
 
-            $uri    = new Uri();
+            $uri    = new Uri(null);
             $actual = [
                 'toString'     => (string) $uri,
                 'getScheme'    => $uri->getScheme(),
@@ -293,8 +514,8 @@ class UriTest extends TestCase
 
             $this->assertInstanceOf('Psr\Http\Message\UriInterface', $uri);
 
-            foreach ($actual as $function => $return) { 
-                $this->assertEquals($this->assertions[$index][$function], $return, $function.", ".$index.\var_export($_SERVER, true)); 
+            foreach ($actual as $function => $return) {
+                $this->assertEquals($this->global_assertions[$index][$function], $return, $function.", ".$index); 
             }
 
         }
@@ -363,6 +584,16 @@ class UriTest extends TestCase
         $uri->withHost([]);
         $uri->withHost(1234);
         $uri->withHost(false);
+    }
+
+    public function testPortMustHaveCorrectType()
+    {
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Port must be an integer or null');
+        $uri = new Uri();
+        $uri->withPort([]);
+        $uri->withPort('1234');
+        $uri->withPort(false);
     }
 
     public function testPathMustHaveCorrectType()
@@ -449,4 +680,64 @@ class UriTest extends TestCase
         $this->assertSame('example.com:80', $uri->getAuthority());
     }
 
+    public function testStandardPortIsNullIfSchemeChanges()
+    {
+        $uri = new Uri('http://example.com:443');
+        $this->assertSame('http', $uri->getScheme());
+        $this->assertSame(443, $uri->getPort());
+
+        $uri = $uri->withScheme('https');
+        $this->assertNull($uri->getPort());
+    }
+
+    public function testPortCanBeRemoved()
+    {
+        $uri = (new Uri('http://example.com:8080'))->withPort(null);
+
+        $this->assertNull($uri->getPort());
+        $this->assertSame('http://example.com', (string) $uri);
+    }
+
+    public function testAuthorityWithUserInfoButWithoutHost()
+    {
+        $uri = (new Uri())->withUserInfo('user', 'pass');
+
+        $this->assertSame('user:pass', $uri->getUserInfo());
+        $this->assertSame('', $uri->getAuthority());
+    }
+
+    public function testWithPathEncodesProperly()
+    {
+        $uri = (new Uri())->withPath('/baz?#€/b%61r');
+        // Query and fragment delimiters and multibyte chars are encoded.
+        $this->assertSame('/baz%3F%23%E2%82%AC/b%61r', $uri->getPath());
+        $this->assertSame('/baz%3F%23%E2%82%AC/b%61r', (string) $uri);
+    }
+
+    public function testDefaultReturnValuesOfGetters()
+    {
+        $uri = new Uri();
+
+        $this->assertSame('', $uri->getScheme());
+        $this->assertSame('', $uri->getAuthority());
+        $this->assertSame('', $uri->getUserInfo());
+        $this->assertSame('', $uri->getHost());
+        $this->assertNull($uri->getPort());
+        $this->assertSame('', $uri->getPath());
+        $this->assertSame('', $uri->getQuery());
+        $this->assertSame('', $uri->getFragment());
+    }
+
+    public function testImmutability()
+    {
+        $uri = new Uri();
+
+        $this->assertNotSame($uri, $uri->withScheme('https'));
+        $this->assertNotSame($uri, $uri->withUserInfo('user', 'pass'));
+        $this->assertNotSame($uri, $uri->withHost('example.com'));
+        $this->assertNotSame($uri, $uri->withPort(8080));
+        $this->assertNotSame($uri, $uri->withPath('/path/123'));
+        $this->assertNotSame($uri, $uri->withQuery('q=abc'));
+        $this->assertNotSame($uri, $uri->withFragment('test'));
+    }
 }

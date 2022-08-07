@@ -11,20 +11,50 @@ use Psr\Http\Message\UriInterface;
  */
 class Uri implements UriInterface
 {
-
     /**
      * @var array The enabled schemes and their ports.
      */
     private static $schemes = [80 => 'http', 443 => 'https'];
 
-    private static $patterns = [
-        'scheme'    => "(https?\:)?\/\/",
-        'userinfo'  => "([\w\-\.~!\$&\'\(\)\*\+,;=%]+(\:[\w\-\.~!\$&\'\(\)\*\+,;=%]+)?@)?",
-        'host'      => "((([\d]{1,3})\.([\d]{1,3})\.([\d]{1,3})\.([\d]{1,3}))|(\[[A-Fa-f0-9\:]{3,39}\])|([\w\-\.~%]{3,253}))",
-        'port'      => "(\:[\d]{2,5})?",
-        'path'      => "(\/([\w\-\.~!\$&\'\(\)\*\+,;=%]+)*)*\/?",
-        'query'     => "(\?[\w\-\.~!\$&\'\(\)\*\+,;=%]+)?",
-        'fragment'  => "(#[\w\-\.~!\$&\'\(\)\*\+,;=%]*)?"
+    /**
+     * @var string unreserved characters according to standard STD 66 (RFC 3986)
+     * Characters that are allowed in a URI but do not have a reserved
+     * purpose are called unreserved.
+     * @see https://www.rfc-editor.org/rfc/rfc3986.html#section-2.3
+     */
+    private const UNRESERV = '\w\-\.~';
+
+    /**
+     * @var string main delimiter characters according to standard STD 66 (RFC 3986)
+     * A subset of the reserved characters is used as delimiters of the generic URI components
+     * @see https://www.rfc-editor.org/rfc/rfc3986.html#section-2.2
+     */
+    private const GENDELIM = '\:\/\?#\[\]@';
+
+    /**
+     * @var string sub-delimiter characters according to standard STD 66 (RFC 3986)
+     * A subset of the reserved characters is used as subcomponent delimiters within the component
+     * @see https://www.rfc-editor.org/rfc/rfc3986.html#section-2.2
+     */
+    private const SUBDELIM = '!\$&\'\(\)\*\+,;=';
+    
+    private const BASECHAR = self::UNRESERV.self::SUBDELIM.'%';
+
+    private const HEX = "A-Fa-f0-9";
+    private const PCE = '%['.self::HEX.']{2}';
+    private const IP4 = "[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}";
+    private const IP6 = "(\[[".self::HEX."\:]{3,39}\])";
+    private const REG = '(['.self::BASECHAR.']+|'.self::PCE.')';
+    private const HST = "(".self::IP4."|".self::IP6."|".self::REG."+)";
+
+    private static $encoder = [
+        'wholeuri' => '/([^'.self::BASECHAR.self::GENDELIM.']+|(?!'.self::PCE.'))/i',
+        'user'     => '/([^'.self::BASECHAR.']+|(?!'.self::PCE.'))/i',
+        'pass'     => '/([^'.self::BASECHAR.']+|(?!'.self::PCE.'))/i',
+        'host'     => '/([^'.self::BASECHAR.'\[\]\:]+|(?!'.self::PCE.'))/i',
+        'path'     => '/([^'.self::BASECHAR.'\:@\/]+|(?!'.self::PCE.'))/i',
+        'query'    => '/([^'.self::BASECHAR.']+|(?!'.self::PCE.'))/i',
+        'fragment' => '/([^'.self::BASECHAR.']+|(?!'.self::PCE.'))/i'
     ];
 
     /** @var string The scheme component of the URI. */
@@ -51,35 +81,29 @@ class Uri implements UriInterface
     /**
      * Creates a new Uri instance
      * 
-     * @param string $uri
+     * @param string|null $uri
+     * - if $uri is empty string: creates an empty instance
+     * - if $uri is not empty: creates an instance based on $uri
+     * - if $uri is null: cretaes a new instance from superglobals
      * @return Uri
      * @throws \InvalidArgumentException for invalid URI.
      */
-    public function __construct(string $uri = '')
+    public function __construct(?string $uri = '')
     {
-        if (empty($uri)) {
-            $encodedUri  = $_SERVER['REQUEST_SCHEME'] ? $_SERVER['REQUEST_SCHEME'].'://' : '//';
-            if (!empty($_SERVER['PHP_AUTH_USER']) && !empty($_SERVER['PHP_AUTH_PW'])) { 
-                $encodedUri .= $_SERVER['PHP_AUTH_USER'].':'.$_SERVER['PHP_AUTH_PW'].'@';
-            } elseif (!empty($_SERVER['PHP_AUTH_USER'])) {
-                $encodedUri .= $_SERVER['PHP_AUTH_USER'].'@';
-            }
-            $encodedUri .= $_SERVER['HTTP_HOST'] ?? ($_SERVER['SERVER_NAME'] ?? '');
-            $encodedUri .= $_SERVER['SERVER_PORT'] ? ':'.$_SERVER['SERVER_PORT'] : '';
-            $encodedUri .= $_SERVER['REQUEST_URI'] ?? '';
-        } else {
-            $encodedUri = $this->encode($uri);      
-        }
+        if (\is_null($uri)) {
+            $components['scheme']   = $_SERVER['REQUEST_SCHEME'] ?? '';
+            $components['user']     = $_SERVER['PHP_AUTH_USER']  ?? '';
+            $components['pass']     = $_SERVER['PHP_AUTH_PW']    ?? '';
+            $components['host']     = $_SERVER['HTTP_HOST']      ?? ($_SERVER['SERVER_NAME'] ?? '');
+            $components['port']     = $_SERVER['SERVER_PORT']    ?? null;
+            $components['path']     = $_SERVER['REQUEST_URI']    ? \explode('?', $_SERVER['REQUEST_URI'])[0] : ''; 
+            $components['query']    = $_SERVER['QUERY_STRING']   ?? '';
+            $components['fragment'] = '';
+        } elseif (\is_string($uri)) {
+            $components = empty($uri) ? [] : \parse_url($uri);
+        } 
 
-        if ($this->validateUri($encodedUri)) {
-            $components = \parse_url($encodedUri);
-        } else {
-            throw new \InvalidArgumentException($uri.' is not a valid URI');
-        }
-        
-        if (false === $components) {
-            throw new \InvalidArgumentException($uri.' is not a valid URI');
-        } elseif(!\is_array($components)) {
+        if ($components === false || !\is_array($components)) {
             throw new \InvalidArgumentException($uri.' is not a valid URI');
         }
 
@@ -91,11 +115,9 @@ class Uri implements UriInterface
             $this->setPath($components['path'] ?? '');
             $this->setQuery($components['query'] ?? '');
             $this->setFragment($components['fragment'] ?? '');
-        } catch (\InvalidArgumentException $e) { 
-            throw $e; 
-        } catch (\TypeError $te) {
-            throw new \InvalidArgumentException($te->getMessage());
-        }
+        } catch (\InvalidArgumentException | \TypeError $e) { 
+            throw new \InvalidArgumentException($uri.' is not a valid URI');
+        } 
     }
 
     ##########################
@@ -197,10 +219,11 @@ class Uri implements UriInterface
      */
     public function withScheme($scheme): Uri
     {
-        if ($scheme === $this->scheme) { return $this; }
         try {
+            if ($scheme === $this->scheme) { return $this; }
             $clone = clone $this;
             $clone->setScheme($scheme);
+            $clone->setPort($clone->port);
             return $clone;
         } catch (\InvalidArgumentException $e) { 
             throw $e; 
@@ -220,8 +243,8 @@ class Uri implements UriInterface
      */
     public function withUserInfo($user, $password = null): Uri
     {
-        if ($this->userInfo === $user.(!empty($password) ? ':'.$password : '')) { return $this; }
         try {
+            if ($this->userInfo === $user.(!empty($password) ? ':'.$password : '')) { return $this; }
             $clone = clone $this;
             $clone->setUserInfo($user, $password);
             return $clone;
@@ -240,8 +263,8 @@ class Uri implements UriInterface
      */
     public function withHost($host): Uri 
     {
-        if ($host === $this->host) { return $this; }
         try {
+            if ($host === $this->host) { return $this; }
             $clone = clone $this;
             $clone->setHost($host);
             return $clone;
@@ -262,8 +285,8 @@ class Uri implements UriInterface
      */
     public function withPort($port): Uri
     {
-        if ($port === $this->port) { return $this; }
         try {
+            if ($port === $this->port) { return $this; }
             $clone = clone $this;
             $clone->setPort($port);
             return $clone;
@@ -283,8 +306,8 @@ class Uri implements UriInterface
      */
     public function withPath($path): Uri
     {
-        if ($path === $this->path) { return $this; }
         try {
+            if ($this->encode($path) === $this->path) { return $this; }
             $clone = clone $this;
             $clone->setPath($path);
             return $clone;
@@ -303,8 +326,8 @@ class Uri implements UriInterface
      */
     public function withQuery($query): Uri
     {
-        if ($query === $this->query) { return $this; }
         try {
+            if ($this->encode($query, 'query') === $this->query) { return $this; }
             $clone = clone $this;
             $clone->setQuery($query);
             return $clone;
@@ -323,8 +346,8 @@ class Uri implements UriInterface
      */
     public function withFragment($fragment): Uri
     {
-        if ($fragment === $this->fragment) { return $this; }
         try {
+            if ($this->encode($fragment, 'fragment') === $this->fragment) { return $this; }
             $clone = clone $this;
             $clone->setFragment($fragment);
             return $clone;
@@ -354,11 +377,11 @@ class Uri implements UriInterface
      */
     public function __toString(): string 
     { 
-        $result  = !empty($this->scheme)         ? $this->scheme.'://'   : '//';
-        $result .= !empty($this->getAuthority()) ? $this->getAuthority() : ''  ;
-        $result .= !empty($this->path)           ? $this->path           : ''  ;
-        $result .= !empty($this->query)          ? '?'.$this->query      : ''  ;
-        $result .= !empty($this->fragment)       ? '#'.$this->fragment   : ''  ;
+        $result  = !empty($this->scheme)         ? $this->scheme.':'          : '';
+        $result .= !empty($this->getAuthority()) ? '//'.$this->getAuthority() : '';
+        $result .= !empty($this->path)           ? $this->path                : '';
+        $result .= !empty($this->query)          ? '?'.$this->query           : '';
+        $result .= !empty($this->fragment)       ? '#'.$this->fragment        : '';
         return $result; 
     }
 
@@ -367,31 +390,19 @@ class Uri implements UriInterface
     ##########################
 
     /**
-     * Validate URI
-     *
-     * @param string $uri
-     * @return boolean true, if the given URI valid, false otherwise
-     */
-    protected function validateUri(string $uri): bool
-    {
-        $pattern  = "/^(".self::$patterns['scheme'].self::$patterns['userinfo'];
-        $pattern .= self::$patterns['host'].self::$patterns['port'].")?";
-        $pattern .= self::$patterns['path'].self::$patterns['query'].self::$patterns['fragment']."$/i";
-        return (bool) \preg_match($pattern, $uri);
-    }
-
-    /**
      * URL-encode according to RFC 3986
      *
      * @param string $string The string to be encoded. 
      * @return string Returns a string in which all non-alphanumeric characters except -_.~ 
      * have been replaced with a percent (%) sign followed by two hex digits. 
+     * '/(?:[^a-zA-Z0-9_\-\.~!\$&\'\(\)\*\+,;=%\:@\/\?\[\]#]+|%(?![A-Fa-f0-9]{2}))/', 
      */
-    protected function encode(string $string): string
+    protected function encode(string $string, string $component = 'wholeuri'): string
     {
         if (!empty($string)) {
             $result = \preg_replace_callback(
-                '/(?:[^a-zA-Z0-9_\-\.~!\$&\'\(\)\*\+,;=%\:@\/\?\[\]#]+|%(?![A-Fa-f0-9]{2}))/', 
+                static::$encoder[$component],
+                #'/(?:[^a-zA-Z0-9_\-\.~!\$&\'\(\)\*\?\+,;=%\:@\/\[\]]+|(?!%[A-Fa-f0-9]{2}))/', 
                 function ($matches) { return rawurlencode($matches[0]); },
                 $string
             );
@@ -427,10 +438,12 @@ class Uri implements UriInterface
      */
     protected function setUserInfo(string $user, ?string $pass = null): self 
     {
-        if (!empty($user) && !empty($pass)) { 
-            $this->userInfo = $user.':'.$pass;
-        } elseif (!empty($user)) {
-            $this->userInfo = $user;
+        $newUser = !empty($user) ? $this->encode($user, 'user') : '';
+        $newPass = !empty($pass) ? $this->encode($pass, 'pass') : '';
+        if (!empty($newUser) && !empty($newPass)) { 
+            $this->userInfo = $newUser.':'.$newPass;
+        } elseif (!empty($newUser)) {
+            $this->userInfo = $newUser;
         } else { 
             $this->userInfo = '';
         }
@@ -447,8 +460,8 @@ class Uri implements UriInterface
     protected function setHost(string $host): self 
     {
         $host = \strtolower($host);
-        if (\preg_match(self::$patterns['host'], $host) xor empty($host)) {
-            $this->host = $host;
+        if (\preg_match(self::HST, $host) xor empty($host)) {
+            $this->host = $this->encode($host, 'host');
             return $this;
         } else {
             throw new \InvalidArgumentException($host.' is not a valid host name');
@@ -483,7 +496,7 @@ class Uri implements UriInterface
     protected function setPath(string $path): self 
     {
         if (!empty($path)) {
-            $this->path = $this->encode($path);
+            $this->path = $this->encode($path, 'path');
         } else {
             $this->path = '';
         }
@@ -500,7 +513,7 @@ class Uri implements UriInterface
     protected function setQuery(string $query): self 
     {
         if (!empty($query)) {
-            $this->query = $this->encode($query);
+            $this->query = $this->encode($query, 'query');
         } else {
             $this->query = '';
         }
@@ -516,7 +529,7 @@ class Uri implements UriInterface
     protected function setFragment(string $fragment): self 
     {
         if (!empty($fragment)) {
-            $this->fragment = $this->encode($fragment);
+            $this->fragment = $this->encode($fragment, 'fragment');
         } else {
             $this->fragment = '';
         }
