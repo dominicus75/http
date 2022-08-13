@@ -740,4 +740,19 @@ class UriTest extends TestCase
         $this->assertNotSame($uri, $uri->withQuery('q=abc'));
         $this->assertNotSame($uri, $uri->withFragment('test'));
     }
+
+    public function testUtf8Host()
+    {
+        $uri = new Uri('http://ουτοπία.δπθ.gr/');
+        $this->assertSame('%CE%BF%CF%85%CF%84%CE%BF%CF%80%CE%AF%CE%B1.%CE%B4%CF%80%CE%B8.gr', $uri->getHost());
+        $new = $uri->withHost('程式设计.com');
+        $this->assertSame('%E7%A8%8B%E5%BC%8F%E8%AE%BE%E8%AE%A1.com', $new->getHost());
+
+        $testDomain = 'παράδειγμα.δοκιμή';
+        $uriEncoded = '%CF%80%CE%B1%CF%81%CE%AC%CE%B4%CE%B5%CE%B9%CE%B3%CE%BC%CE%B1.%CE%B4%CE%BF%CE%BA%CE%B9%CE%BC%CE%AE';
+        $uri = (new Uri())->withHost($testDomain);
+        $this->assertSame($uriEncoded, $uri->getHost());
+        $this->assertSame('//' . $uriEncoded, (string) $uri);
+    }
+
 }
