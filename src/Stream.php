@@ -84,6 +84,7 @@ class Stream implements StreamInterface
      */
     public function detach()
     {
+        if (!isset($this->stream)) { return null; }
         $result = $this->stream;
         unset($this->stream);
         return $result;
@@ -96,6 +97,7 @@ class Stream implements StreamInterface
      */
     public function getSize(): int|null
     {
+        if (!isset($this->stream)) { return null; }
         $stat = \fstat($this->stream);
         return $stat['size'] ?? null;
     }
@@ -246,8 +248,7 @@ class Stream implements StreamInterface
      * Returns the remaining contents in a string
      *
      * @return string
-     * @throws \RuntimeException if unable to read or an error occurs while
-     *     reading.
+     * @throws \RuntimeException if unable to read or an error occurs while reading.
      */
     public function getContents(): string
     {
