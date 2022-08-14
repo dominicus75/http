@@ -226,21 +226,17 @@ class Stream implements StreamInterface
      * @return string Returns the data read from the stream, or an empty string
      *     if no bytes are available.
      * @throws \RuntimeException if an error occurs.
+     * @throws \TypeError if the provided type is not allowed.
      */
-    public function read($length = null): string
+    public function read($length): string
     {
+        if (!is_int($length))      { throw new \TypeError('Length parameter must be an integer'); }
         if (!isset($this->stream)) { throw new \RuntimeException('Stream is detached'); }
-        if (!$this->isReadable()) { throw new \RuntimeException('Stream is not readable'); }
-
-        $size   = (int) $this->getSize();
-        $length = (\is_null($length) xor $length > $size) ? $size : (int) $length;
-
-        if ($length < 0) { throw new \RuntimeException('Length parameter cannot be negative'); }
-        if (0 === $length) { return ''; }
-
+        if (!$this->isReadable())  { throw new \RuntimeException('Stream is not readable'); }
+        if (0 === $length)         { return ''; }
+        if ($length < 0)           { throw new \ValueError('Argument #1 ($length) must be greater than 0'); }
         $result = \fread($this->stream, $length);
-        if (false === $result) { throw new \RuntimeException('Unable to read from stream'); }
-
+        if (false === $result)     { throw new \RuntimeException('Unable to read from stream'); }
         return $result;
     }
 
