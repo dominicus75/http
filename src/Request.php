@@ -41,83 +41,70 @@ class Request extends AbstractMessage implements RequestInterface
     protected UriInterface $uri;
 
     /**
-     * The constructor method
+     * The constructor method. Creates a new Request instance.
      *
      * @param string $method
      * @return self
      * @throws \InvalidArgumentException if
+     *  - HTTP protocol version is not valid
      *  - $method is not valid HTTP method,
      *  - a header name is not valid.
      */
     public function __construct(
+        string $version = '1.1',
         string $method = '',
         array $headers = [],
         string|UriInterface|null $uri = null,
         string|StreamInterface|null $body = null
     ) {
-        parent::__construct($body);
-
-        $method = !empty($method) ? $method : $_SERVER['REQUEST_METHOD'];
-
-        if (\preg_match('/^(options|get|head|put|post|delete|patch)$/is', $method)) {
-            $this->method = $method;
-        } else { throw new \InvalidArgumentException($method.' is not a valid HTTP method.'); }
-
-        $this->headers['A-IM']                           = null;
-        $this->headers['Accept']                         = null;
-        $this->headers['Accept-Charset']                 = null;
-        $this->headers['Accept-Datetime']                = null;
-        $this->headers['Accept-Encoding']                = null;
-        $this->headers['Accept-Language']                = null;
-        $this->headers['Access-Control-Request-Method']  = null;
-        $this->headers['Access-Control-Request-Headers'] = null;
-        $this->headers['Authorization']                  = null;
-        $this->headers['Cookie']                         = null;
-        $this->headers['Expect']                         = null;
-        $this->headers['Forwarded']                      = null;
-        $this->headers['From']                           = null;
-        $this->headers['Host']                           = null;
-        $this->headers['HTTP2-Settings']                 = null;
-        $this->headers['If-Match']                       = null;
-        $this->headers['If-Modified-Since']              = null;
-        $this->headers['If-None-Match']                  = null;
-        $this->headers['If-Range']                       = null;
-        $this->headers['If-Unmodified-Since']            = null;
-        $this->headers['Max-Forwards']                   = null;
-        $this->headers['Origin']                         = null;
-        $this->headers['Prefer']                         = null;
-        $this->headers['Proxy-Authorization']            = null;
-        $this->headers['Range']                          = null;
-        $this->headers['Referer']                        = null;
-        $this->headers['User-Agent']                     = null;
-        $this->headers['Upgrade-Insecure-Requests']      = null;
-        $this->headers['X-Forwarded-For']                = null;
-        $this->headers['X-Forwarded-Host']               = null;
-        $this->headers['X-Forwarded-Proto']              = null;
-        $this->headers['X-Requested-With']               = null;
-        $this->headers['X-Csrf-Token']                   = null;
-
         try {
-            if (empty($headers)) {
-                foreach ($_SERVER as $name => $value) {
-                    if (str_starts_with($name, 'HTTP')) { $this->setHeaderField($name, $value); }
-                }
+            $this->headers['A-IM']                           = null;
+            $this->headers['Accept']                         = null;
+            $this->headers['Accept-Charset']                 = null;
+            $this->headers['Accept-Datetime']                = null;
+            $this->headers['Accept-Encoding']                = null;
+            $this->headers['Accept-Language']                = null;
+            $this->headers['Access-Control-Request-Method']  = null;
+            $this->headers['Access-Control-Request-Headers'] = null;
+            $this->headers['Authorization']                  = null;
+            $this->headers['Cookie']                         = null;
+            $this->headers['Expect']                         = null;
+            $this->headers['Forwarded']                      = null;
+            $this->headers['From']                           = null;
+            $this->headers['Host']                           = null;
+            $this->headers['HTTP2-Settings']                 = null;
+            $this->headers['If-Match']                       = null;
+            $this->headers['If-Modified-Since']              = null;
+            $this->headers['If-None-Match']                  = null;
+            $this->headers['If-Range']                       = null;
+            $this->headers['If-Unmodified-Since']            = null;
+            $this->headers['Max-Forwards']                   = null;
+            $this->headers['Origin']                         = null;
+            $this->headers['Prefer']                         = null;
+            $this->headers['Proxy-Authorization']            = null;
+            $this->headers['Range']                          = null;
+            $this->headers['Referer']                        = null;
+            $this->headers['User-Agent']                     = null;
+            $this->headers['Upgrade-Insecure-Requests']      = null;
+            $this->headers['X-Forwarded-For']                = null;
+            $this->headers['X-Forwarded-Host']               = null;
+            $this->headers['X-Forwarded-Proto']              = null;
+            $this->headers['X-Requested-With']               = null;
+            $this->headers['X-Csrf-Token']                   = null;   
+            parent::__construct($version, $headers, $body);
+            $this->setMethod($method);
+            if($uri instanceof UriInterface) {
+                $this->uri = $uri;
             } else {
-                foreach ($headers as $name => $value) { $this->setHeaderField($name, $value); }
+                try {
+                    $this->uri            = new Uri($uri);
+                    $path                 = $this->uri->getPath();
+                    $query                = $this->uri->getQuery();
+                    $this->requestTarget  = empty($path) ? '/' : $path;
+                    $this->requestTarget .= empty($query) ? '' : '?'.$query;        
+                } catch (\InvalidArgumentException $e) { throw $e; }
             }
         } catch (\InvalidArgumentException $e) { throw $e; }
-
-        if($uri instanceof UriInterface) {
-            $this->uri = $uri;
-        } else {
-            try {
-                $this->uri            = \is_string($uri) ? new Uri($uri) : new Uri();
-                $path                 = $this->uri->getPath();
-                $query                = $this->uri->getQuery();
-                $this->requestTarget  = empty($path) ? '/' : $path;
-                $this->requestTarget .= empty($query) ? '' : '?'.$query;        
-            } catch (\InvalidArgumentException $e) { throw $e; }
-        }
     }
 
     ##########################
@@ -167,14 +154,11 @@ class Request extends AbstractMessage implements RequestInterface
     public function withMethod($method): self
     {
         if ($method === $this->method) { return $this; }
-
-        if (!\preg_match('/^(options|get|head|put|post|delete|patch)$/is', $method)) {
-            throw new \InvalidArgumentException($method.' is not a valid HTTP method.');
-        }
-
-        $clone = clone $this;
-        $clone->method = $method;
-        return $clone;
+        try {
+            $clone = clone $this;
+            $clone->setMethod($method);
+            return $clone;
+        } catch (\InvalidArgumentException $e) { throw $e; }
     }
 
     /**
@@ -204,10 +188,31 @@ class Request extends AbstractMessage implements RequestInterface
         $uriHost    = $clone->getUri()->getHost();
 
         if ((!$preserveHost xor ($preserveHost && empty($reqHost))) && !empty($uriHost)) {
-            $clone->setHeaderField('Host', $uriHost, true);
+            $clone->setHeader('Host', $uriHost, true);
         }
 
         return $clone;
+    }
+
+    #####################################
+    # Protected, non-standard functions #
+    #####################################
+
+    /**
+     * Sets the request method property.
+     *
+     * @param string $method the name of the HTTP request method
+     * @return self
+     * @throws \InvalidArgumentException when method name is invalid
+     */
+    protected function setMethod(string $method = ''): self
+    {
+        $method = !empty($method) ? $method : $_SERVER['REQUEST_METHOD'];
+
+        if (\preg_match('/^(options|get|head|put|post|delete|patch)$/is', $method)) {
+            $this->method = $method;
+            return $this;
+        } else { throw new \InvalidArgumentException($method.' is not a valid HTTP method.'); }
     }
 
 }

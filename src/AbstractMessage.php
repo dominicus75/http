@@ -25,7 +25,7 @@ abstract class AbstractMessage implements MessageInterface
      *
      * @var string
      */
-    protected string $protocol;
+    protected string $version;
 
     /**
      * The keys represent the header name as it will be sent over the wire, and
@@ -33,7 +33,22 @@ abstract class AbstractMessage implements MessageInterface
      *
      * @var array
      */
-    protected array $headers;
+    protected array $headers = [
+        'Cache-Control'     => null,
+        'Connection'        => null,
+        'Content-Encoding'  => null,
+        'Content-Length'    => null,
+        'Content-MD5'       => null,
+        'Content-Type'      => null,
+        'Date'              => null,
+        'Pragma'            => null,
+        'Trailer'           => null,
+        'Transfer-Encoding' => null,
+        'TE'                => null,
+        'Upgrade'           => null,
+        'Via'               => null,
+        'Warning'           => null
+    ];
 
     /**
      * Describes a data stream. Typically, an instance will wrap a PHP stream
@@ -42,32 +57,28 @@ abstract class AbstractMessage implements MessageInterface
      */
     protected StreamInterface|null $body;
 
-    protected function __construct(string|StreamInterface|null $body = null)
-    {
-        $this->protocol = explode('/', $_SERVER['SERVER_PROTOCOL'])[1];
-
-        $this->headers = [
-            'Cache-Control'     => null,
-            'Connection'        => null,
-            'Content-Encoding'  => null,
-            'Content-Length'    => null,
-            'Content-MD5'       => null,
-            'Content-Type'      => null,
-            'Date'              => null,
-            'Pragma'            => null,
-            'Trailer'           => null,
-            'Transfer-Encoding' => null,
-            'TE'                => null,
-            'Upgrade'           => null,
-            'Via'               => null,
-            'Warning'           => null
-        ];
-
-        if($body instanceof StreamInterface || \is_null($body)) {
-            $this->body = $body;
-        } elseif(\is_string($body)) {
-            $this->body = new Stream($body);
-        }
+    /**
+     * The protected constructor method.
+     *
+     * @param string $version HTTP protocol version as string
+     * @param string|StreamInterface|null $body HTTP message body
+     * @return self
+     * @throws \InvalidArgumentException
+     */
+    protected function __construct(
+        string $version = '1.1',
+        array  $headers = [],
+        string|StreamInterface|null $body = null
+    ) {
+        try {
+            $this->setProtocolVersion($version);
+            $this->setHeaders($headers);
+            if($body instanceof StreamInterface || \is_null($body)) {
+                $this->body = $body;
+            } elseif(\is_string($body)) {
+                $this->body = new Stream($body);
+            }
+        } catch (\InvalidArgumentException $e) { throw $e; }
     }
 
     ##########################
@@ -81,7 +92,7 @@ abstract class AbstractMessage implements MessageInterface
      *
      * @return string HTTP protocol version.
      */
-    public function getProtocolVersion(): string { return $this->protocol; }
+    public function getProtocolVersion(): string { return $this->version; }
 
     /**
      * Return an instance with the specified HTTP protocol version.
@@ -94,9 +105,9 @@ abstract class AbstractMessage implements MessageInterface
      */
     public function withProtocolVersion($version): AbstractMessage
     {
-        if ($version === $this->protocol) { return $this; }
+        if ($version === $this->version) { return $this; }
         $clone = clone $this;
-        $clone->protocol = $version;
+        $clone->version = $version;
         return $clone;
     }
 
@@ -170,7 +181,7 @@ abstract class AbstractMessage implements MessageInterface
     {
         try {
             $clone = clone $this;
-            $clone->setHeaderField($name, $value, true);
+            $clone->setHeader($name, $value, true);
             return $clone;
         } catch (\InvalidArgumentException $e) {
             throw $e;
@@ -189,7 +200,7 @@ abstract class AbstractMessage implements MessageInterface
     {
         try {
             $clone = clone $this;
-            $clone->setHeaderField($name, $value);
+            $clone->setHeader($name, $value);
             return $clone;
         } catch (\InvalidArgumentException $e) {
             throw $e;
@@ -237,8 +248,41 @@ abstract class AbstractMessage implements MessageInterface
     #####################################
 
     /**
-     * The keys represent the header name as it will be sent over the wire, and
-     * each value is an array of strings associated with the header.
+     * Sets the HTTP protocol version.
+     *
+     * The string MUST contain only the HTTP version number (e.g., "1.1", "1.0").
+     *
+     * @param string $version
+     * @return self
+     * @throws \InvalidArgumentException When the protocol version is not valid.
+     */
+    protected function setProtocolVersion(string $version = ''): self
+    {
+        if (empty($version)) {
+            $this->setProtocolVersion(explode('/', $_SERVER['SERVER_PROTOCOL'])[1]);
+        } elseif (\preg_match("/^(1\.0|1\.1|2\.0)$/", $version)) {
+            $this->version = $version;
+        } else {
+            throw new \InvalidArgumentException($version.' is not a valid HTTP protocol version');
+        }
+        return $this;
+    }
+
+    /**
+     * Returns the normalized header field name. E.g. 'HTTP_HOST' returns as 'Host'.
+     *
+     * @param string $fieldName
+     * @return string normalized name
+     */
+    protected function normalizeHeaderdName(string $name): string
+    {
+        $name = \str_replace('HTTP_', '', $name);
+        return \ucwords(\str_replace('_', '-', \strtolower($name)), '-');
+    }
+
+    /**
+     * Sets a header field. The keys represent the header name as it will be sent over the wire, 
+     * and each value is an array of strings associated with the header.
      *
      * @param string $name Case-insensitive header field name.
      * @param string|string[] $value Header value(s).
@@ -246,7 +290,7 @@ abstract class AbstractMessage implements MessageInterface
      * @return AbstractMessage
      * @throws \InvalidArgumentException for invalid header names or values.
      */
-    protected function setHeaderField(string $name, string|array $value, bool $update = false): self
+    protected function setHeader(string $name, string|array $value, bool $update = false): self
     {
         $field = $this->normalizeHeaderdName($name);
 
@@ -266,15 +310,25 @@ abstract class AbstractMessage implements MessageInterface
     }
 
     /**
-     * Returns the normalized header field name. E.g. 'HTTP_HOST' returns as 'Host'.
+     * Sets the headers property.
      *
-     * @param string $fieldName
-     * @return string normalized name
+     * @param array $headers
+     * @return self
+     * @throws \InvalidArgumentException for invalid header names or values.
      */
-    protected function normalizeHeaderdName(string $name): string
+    protected function setHeaders(array $headers = []): self
     {
-        $name = \str_replace('HTTP_', '', $name);
-        return \ucwords(\str_replace('_', '-', \strtolower($name)), '-');
+        try {
+            if (empty($headers)) {
+                foreach ($_SERVER as $name => $value) {
+                    if (str_starts_with($name, 'HTTP')) { $this->setHeader($name, $value); }
+                }
+            } else {
+                foreach ($headers as $name => $value) { $this->setHeader($name, $value); }
+            }
+        } catch (\InvalidArgumentException $e) { throw $e; }
+
+        return $this;
     }
 
 }
