@@ -171,7 +171,7 @@ class Request extends AbstractMessage implements ServerRequestInterface
      * Return an instance with the specific request-target.
      *
      * @link http://tools.ietf.org/html/rfc7230#section-5.3 (for the various
-     *     request-target forms allowed in request messages)
+     * request-target forms allowed in request messages)
      * @param mixed $requestTarget
      * @return static
      */
@@ -376,7 +376,7 @@ class Request extends AbstractMessage implements ServerRequestInterface
      * @return self
      * @throws \InvalidArgumentException when method name is invalid
      */
-    protected function setMethod(string $method = ''): self
+    private function setMethod(string $method = ''): self
     {
         $method = !empty($method) ? $method : $_SERVER['REQUEST_METHOD'];
 
@@ -391,7 +391,7 @@ class Request extends AbstractMessage implements ServerRequestInterface
 	 * 
 	 * @return Request
 	 */
-	function setRequestTarget(): self 
+	private function setRequestTarget(): self 
     {
         $path                 = $this->uri->getPath();
         $query                = $this->uri->getQuery();
