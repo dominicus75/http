@@ -19,7 +19,7 @@ class UploadedFile implements UploadedFileInterface
      * @var string|null The temporary filename of the file in which the uploaded file 
      * was stored on the server ($_FILES['userfile']['tmp_name']).
      */
-    private $file = null;
+    private ?string $file = null;
 
     /** 
      * @var bool True, if the uploaded file was moved to a new location
@@ -36,7 +36,7 @@ class UploadedFile implements UploadedFileInterface
      * @var int One of PHP's UPLOAD_ERR_XXX constants
      * ($_FILES['userfile']['error']).
      */
-    private int $error;
+    private int $error = \UPLOAD_ERR_OK;
 
     /** 
      * @var string the original filename sent by the client
@@ -66,18 +66,18 @@ class UploadedFile implements UploadedFileInterface
     public function getStream(): StreamInterface
     {
         if ($this->moved) { 
-            throw new \RuntimeException("The uploaded file was moved to a new location"); 
-        } elseif (isset($this->stream)) { 
-            return $this->stream; 
-        } else {
+            throw new \RuntimeException("Uploaded file has already been moved to a new location"); 
+        } 
+               
+        if (!isset($this->stream)) {
             try {
-                if (isset($this->file)) {
-                    return new Stream($this->file);
-                } else {
-                    throw new \RuntimeException("The uploaded file cannot be opened");
-                }
-            } catch (\InvalidArgumentException $e) { throw $e; }
-        }
+                return new Stream($this->file);
+            } catch (\InvalidArgumentException | \TypeError $e) { 
+                throw new \RuntimeException($e->getMessage()); 
+            }
+        } 
+
+        return $this->stream; 
     }
 
     /**
@@ -92,6 +92,9 @@ class UploadedFile implements UploadedFileInterface
      */
     public function moveTo(string $targetPath): void
     {
+        if ($this->moved) { 
+            throw new \RuntimeException("Uploaded file has already been moved to a new location"); 
+        } 
 
     }
     
@@ -100,10 +103,7 @@ class UploadedFile implements UploadedFileInterface
      *
      * @return int|null The file size in bytes or null if unknown.
      */
-    public function getSize(): ?int
-    {
-        return null;
-    }
+    public function getSize(): ?int { return $this->size; }
     
     /**
      * Retrieve the error associated with the uploaded file.
@@ -112,10 +112,7 @@ class UploadedFile implements UploadedFileInterface
      * @return int One of PHP's UPLOAD_ERR_XXX constants. If the file was 
      * uploaded successfully, this method return UPLOAD_ERR_OK.
      */
-    public function getError(): int
-    {
-        return \UPLOAD_ERR_OK;
-    }
+    public function getError(): int { return $this->error; }
     
     /**
      * Retrieve the filename sent by the client. Do not trust the value 
@@ -125,10 +122,7 @@ class UploadedFile implements UploadedFileInterface
      * @return string|null The filename sent by the client or null if none
      * was provided.
      */
-    public function getClientFilename(): ?string
-    {
-        return null;
-    }
+    public function getClientFilename(): ?string { return $this->clientFilename; }
     
     /**
      * Retrieve the media type sent by the client. Do not trust the value 
@@ -138,9 +132,6 @@ class UploadedFile implements UploadedFileInterface
      * @return string|null The media type sent by the client or null if none
      * was provided.
      */
-    public function getClientMediaType(): ?string
-    {
-        return null;
-    }
+    public function getClientMediaType(): ?string { return $this->clientMediaType; }
 
 }
