@@ -260,7 +260,7 @@ class Request extends AbstractMessage implements ServerRequestInterface
      * @param array $cookies Array of key/value pairs representing cookies.
      * @return static
      */
-    public function withCookieParams(array $cookies): ServerRequest
+    public function withCookieParams(array $cookies): Request
     {
         return $this;
     }
@@ -278,7 +278,7 @@ class Request extends AbstractMessage implements ServerRequestInterface
      * @param array $query Array of query string arguments, typically from $_GET.
      * @return static
      */
-    public function withQueryParams(array $query): ServerRequest
+    public function withQueryParams(array $query): Request
     {
         return $this;
     }
@@ -299,7 +299,7 @@ class Request extends AbstractMessage implements ServerRequestInterface
      * @return static
      * @throws \InvalidArgumentException if an invalid structure is provided.
      */
-    public function withUploadedFiles(array $uploadedFiles): ServerRequest
+    public function withUploadedFiles(array $uploadedFiles): Request
     {
         return $this;
     }
@@ -318,7 +318,7 @@ class Request extends AbstractMessage implements ServerRequestInterface
      * @return static
      * @throws \InvalidArgumentException if an unsupported argument type is provided.
      */
-    public function withParsedBody($data): ServerRequest
+    public function withParsedBody($data): Request
     {
         return $this;
     }
@@ -349,7 +349,7 @@ class Request extends AbstractMessage implements ServerRequestInterface
      * @param mixed $value The value of the attribute.
      * @return static
      */
-    public function withAttribute($name, $value): ServerRequest
+    public function withAttribute($name, $value): Request
     {
         return $this;
     }
@@ -360,7 +360,7 @@ class Request extends AbstractMessage implements ServerRequestInterface
      * @param string $name The attribute name.
      * @return static
      */
-    public function withoutAttribute(string $name): ServerRequest
+    public function withoutAttribute(string $name): Request
     {
         return $this;
     }
@@ -406,7 +406,7 @@ class Request extends AbstractMessage implements ServerRequestInterface
 	 * 
 	 * @param array $server If this array is empty, this method sets property 
      * from PHP's $_SERVER superglobal.
-	 * @return ServerRequest
+	 * @return Request
 	 */
 	private function setServer(array $server = []): self 
     {
@@ -419,7 +419,7 @@ class Request extends AbstractMessage implements ServerRequestInterface
 	 * 
 	 * @param array $cookie If this array is empty, this method sets property 
      * from PHP's $_COOKIE superglobal.
-	 * @return ServerRequest
+	 * @return Request
 	 */
 	private function setCookie(array $cookie = []): self 
     {
@@ -432,7 +432,7 @@ class Request extends AbstractMessage implements ServerRequestInterface
 	 * 
 	 * @param array $get If this array is empty, this method sets property
      * from PHP's $_GET superglobal.
-	 * @return ServerRequest
+	 * @return Request
 	 */
 	private function setGet(array $get = []): self 
     {
@@ -445,7 +445,7 @@ class Request extends AbstractMessage implements ServerRequestInterface
 	 * 
 	 * @param array $files If this array is empty, this method sets property
      * from PHP's $_FILES superglobal.
-	 * @return ServerRequest
+	 * @return Request
 	 */
 	private function setFiles(array $files = []): self 
     {
@@ -458,7 +458,7 @@ class Request extends AbstractMessage implements ServerRequestInterface
 	 * 
 	 * @param array|StreamInterface $post If this argument is an array and is empty, 
      * this method sets property from PHP's $_POST superglobal.
-	 * @return ServerRequest
+	 * @return Request
 	 */
 	private function setPost(array|StreamInterface $post = []): self 
     {
@@ -471,7 +471,7 @@ class Request extends AbstractMessage implements ServerRequestInterface
 	 * 
      * @param string $name Attribute's name
 	 * @param mixed $value Attrinute's value
-	 * @return ServerRequest
+	 * @return Request
 	 */
 	private function setAttribute(string $name, mixed $value): self 
     {
@@ -484,7 +484,7 @@ class Request extends AbstractMessage implements ServerRequestInterface
 	 * 
      * @param string $name Attribute's name
 	 * @param mixed $value Attrinute's value
-	 * @return ServerRequest
+	 * @return Request
 	 */
 	private function updateAttribute(string $name, mixed $value): self 
     {
