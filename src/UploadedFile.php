@@ -9,22 +9,27 @@ use Psr\Http\Message\{UploadedFileInterface, StreamInterface};
  */
 class UploadedFile implements UploadedFileInterface
 {
-
-    /** 
-     * @var StreamInterface|null a stream representing the uploaded file
+    /**
+     * @staticvar array The error code can be found in the error segment 
+     * of the file array that is created during the file upload by PHP.
+     * The error might be found in $_FILES['userfile']['error']. 
      */
-    private ?StreamInterface $stream = null;
+    private const ERRORS = [
+        \UPLOAD_ERR_OK         => 'There is no error, the file uploaded with success',
+        \UPLOAD_ERR_INI_SIZE   => 'The uploaded file exceeds the upload_max_filesize directive in php.ini',
+        \UPLOAD_ERR_FORM_SIZE  => 'The uploaded file exceeds the MAX_FILE_SIZE directive that was specified in the HTML form',
+        \UPLOAD_ERR_PARTIAL    => 'The uploaded file was only partially uploaded',
+        \UPLOAD_ERR_NO_FILE    => 'No file was uploaded',
+        \UPLOAD_ERR_NO_TMP_DIR => 'Missing a temporary folder',
+        \UPLOAD_ERR_CANT_WRITE => 'Failed to write file to disk.',
+        \UPLOAD_ERR_EXTENSION  => 'A PHP extension stopped the file upload.'
+    ];
 
     /**
-     * @var string|null The temporary filename of the file in which the uploaded file 
+     * @var string The temporary filename of the file in which the uploaded file 
      * was stored on the server ($_FILES['userfile']['tmp_name']).
      */
-    private ?string $file = null;
-
-    /** 
-     * @var bool True, if the uploaded file was moved to a new location
-     */
-    private bool $moved = false;
+    private string $tmpName;
 
     /** 
      * @var int|null The file size in bytes or null if unknown
@@ -39,18 +44,62 @@ class UploadedFile implements UploadedFileInterface
     private int $error = \UPLOAD_ERR_OK;
 
     /** 
-     * @var string the original filename sent by the client
+     * @var string|null the original filename sent by the client
      * ($_FILES['userfile']['name']).
      */
-    private string $clientFilename;
+    private ?string $clientFilename;
 
     /** 
-     * @var string the media type sent by the client
+     * @var string|null the media type sent by the client
      * ($_FILES['userfile']['type']). For example: "image/gif"
      */
-    private string $clientMediaType;
+    private ?string $clientMediaType;
 
+    /** 
+     * @var bool True, if the uploaded file was moved to a new location
+     */
+    private bool $moved = false;
 
+    /**
+     * The constructor method. Creates a new UploadedFile instance.
+     *
+     * @param string $tmp_name The temporary filename of the file in which 
+     * the uploaded file was stored on the server
+     * @param integer $error The error code associated with this file upload
+     * @param integer|null $size The size, in bytes, of the uploaded file
+     * @param string|null $name The original name of the file to be uploaded
+     * @param string|null $type The mime type of the file
+     * @throws \InvalidArgumentException for invalid error status
+     * @throws \RuntimeException if file uploading fails or file is not a valid uploaded file
+     */
+    public function __construct(
+        string $tmp_name,
+        int $error,
+        ?int $size    = null,
+        ?string $name = null,
+        ?string $type = null
+    ) {
+        if ($error != \UPLOAD_ERR_OK) {
+            if (!isset(self::ERRORS[$error])) {
+                throw new \InvalidArgumentException(
+                    'Error status for UploadedFile must be an UPLOAD_ERR_* constant'
+                );
+            }   
+            throw new \RuntimeException(self::ERRORS[$error]);
+        } 
+
+        if (\file_exists($tmp_name) && \is_uploaded_file($tmp_name)) {
+            $this->tmpName = $tmp_name;
+            $realFileSize  = \filesize($this->tmpName);
+            $this->size    = ($realFileSize != $size) || \is_null($size) ? $realFileSize : $size;
+            $this->clientFilename  = \preg_replace("/[^\w\.\-]/i", "", $name);
+            $this->clientMediaType = \preg_match("/^[-\w.]+\/[-\w.\+]+$/", $type)
+                ? $type 
+                : \mime_content_type($this->tmpName);
+        } 
+        
+        throw new \RuntimeException($tmp_name.' is not a valid uploaded file');
+    }
 
     ##########################
     # PSR-7 Public interface #
@@ -68,16 +117,11 @@ class UploadedFile implements UploadedFileInterface
         if ($this->moved) { 
             throw new \RuntimeException("Uploaded file has already been moved to a new location"); 
         } 
-               
-        if (!isset($this->stream)) {
-            try {
-                return new Stream($this->file);
-            } catch (\InvalidArgumentException | \TypeError $e) { 
-                throw new \RuntimeException($e->getMessage()); 
-            }
-        } 
-
-        return $this->stream; 
+        try {
+            return new Stream(\fopen($this->tmpName, 'r+'));
+        } catch (\InvalidArgumentException | \TypeError $e) { 
+            throw new \RuntimeException($e->getMessage()); 
+        }
     }
 
     /**
@@ -94,8 +138,29 @@ class UploadedFile implements UploadedFileInterface
     {
         if ($this->moved) { 
             throw new \RuntimeException("Uploaded file has already been moved to a new location"); 
-        } 
+        }
 
+        $target_dir = \dirname($targetPath);
+
+        if (\is_writable($target_dir)) {
+
+            if (\file_exists($targetPath)) {
+                throw new \RuntimeException($targetPath.' file is already exists'); 
+            }
+
+            $this->moved = (\PHP_SAPI === 'cli')
+                ? \rename($this->tmpName, $targetPath)
+                : \move_uploaded_file($this->tmpName, $targetPath);
+                
+        } else {
+            throw new \RuntimeException($target_dir.' is not writable'); 
+        }
+
+        if (!$this->moved) { 
+            throw new \RuntimeException('Uploaded file could not be moved to '.$targetPath); 
+        } else {
+            \unlink($this->tmpName);
+        }
     }
     
     /**
