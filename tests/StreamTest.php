@@ -2,6 +2,7 @@
 
 namespace Dominicus75\Psr7\Tests;
 
+use Psr\Http\Message\StreamInterface;
 use Dominicus75\Psr7\Stream;
 use PHPUnit\Framework\TestCase;
 

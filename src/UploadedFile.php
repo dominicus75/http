@@ -31,6 +31,11 @@ class UploadedFile implements UploadedFileInterface
      */
     private string $tmpName;
 
+    /**
+     * @var StreamInterface Stream representation of the uploaded file
+     */
+    private StreamInterface $stream;
+
     /** 
      * @var int|null The file size in bytes or null if unknown
      * ($_FILES['userfile']['size']).
@@ -63,42 +68,52 @@ class UploadedFile implements UploadedFileInterface
     /**
      * The constructor method. Creates a new UploadedFile instance.
      *
-     * @param string $tmp_name The temporary filename of the file in which 
-     * the uploaded file was stored on the server
+     * @param StreamInterface|string $tmpNameOrStream The temporary filename of the file in which 
+     * the uploaded file was stored on the server, or a stream which representing the uploaded file
      * @param integer $error The error code associated with this file upload
      * @param integer|null $size The size, in bytes, of the uploaded file
      * @param string|null $name The original name of the file to be uploaded
-     * @param string|null $type The mime type of the file
+     * @throws \ValueError $error is int, but not an UPLOAD_ERR_* constant 
      * @throws \InvalidArgumentException for invalid error status
      * @throws \RuntimeException if file uploading fails or file is not a valid uploaded file
      */
     public function __construct(
-        string $tmp_name,
+        StreamInterface|string $tmpNameOrStream,
         int $error,
         ?int $size    = null,
-        ?string $name = null,
-        ?string $type = null
+        ?string $name = null
     ) {
         if ($error != \UPLOAD_ERR_OK) {
             if (!isset(self::ERRORS[$error])) {
-                throw new \InvalidArgumentException(
+                throw new \ValueError(
                     'Error status for UploadedFile must be an UPLOAD_ERR_* constant'
                 );
             }   
             throw new \RuntimeException(self::ERRORS[$error]);
         } 
 
-        if (\file_exists($tmp_name) && \is_uploaded_file($tmp_name)) {
-            $this->tmpName = $tmp_name;
-            $realFileSize  = \filesize($this->tmpName);
-            $this->size    = ($realFileSize != $size) || \is_null($size) ? $realFileSize : $size;
-            $this->clientFilename  = \preg_replace("/[^\w\.\-]/i", "", $name);
-            $this->clientMediaType = \preg_match("/^[-\w.]+\/[-\w.\+]+$/", $type)
-                ? $type 
-                : \mime_content_type($this->tmpName);
-        } 
-        
-        throw new \RuntimeException($tmp_name.' is not a valid uploaded file');
+        if ($tmpNameOrStream instanceof StreamInterface) {
+            $this->stream  = $tmpNameOrStream;
+            $this->tmpName = $this->stream->getMetadata('uri');
+        } elseif (\is_string($tmpNameOrStream)) {
+            if (\file_exists($tmpNameOrStream)) { 
+                throw new \RuntimeException('Uploaded file does not exists'); 
+            }
+            if (\is_uploaded_file($tmpNameOrStream)) {
+                throw new \RuntimeException('It is not a valid uploaded file');
+            }
+            $this->tmpName = $tmpNameOrStream;
+            $stream = \fopen($this->tmpName, 'r+');
+            if (!\is_resource($stream)) {
+                throw new \RuntimeException('Unable to open the stream');
+            }
+            $this->stream = new Stream($stream);           
+        }
+           
+        $realFileSize          = $this->stream->getSize();
+        $this->size            = ($realFileSize != $size) || \is_null($size) ? $realFileSize : $size;
+        $this->clientFilename  = \preg_replace("/[^\w\.\-]/i", "", $name);
+        $this->clientMediaType = \mime_content_type($this->tmpName);    
     }
 
     ##########################
@@ -117,11 +132,7 @@ class UploadedFile implements UploadedFileInterface
         if ($this->moved) { 
             throw new \RuntimeException("Uploaded file has already been moved to a new location"); 
         } 
-        try {
-            return new Stream(\fopen($this->tmpName, 'r+'));
-        } catch (\InvalidArgumentException | \TypeError $e) { 
-            throw new \RuntimeException($e->getMessage()); 
-        }
+        return $this->stream;
     }
 
     /**
@@ -134,7 +145,7 @@ class UploadedFile implements UploadedFileInterface
      * @throws \RuntimeException on any error during the move operation, or on
      * the second or subsequent call to the method.
      */
-    public function moveTo(string $targetPath): void
+    public function moveTo($targetPath): void
     {
         if ($this->moved) { 
             throw new \RuntimeException("Uploaded file has already been moved to a new location"); 
@@ -159,6 +170,7 @@ class UploadedFile implements UploadedFileInterface
         if (!$this->moved) { 
             throw new \RuntimeException('Uploaded file could not be moved to '.$targetPath); 
         } else {
+            $this->stream->close();
             \unlink($this->tmpName);
         }
     }
