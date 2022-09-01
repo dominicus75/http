@@ -96,10 +96,10 @@ class UploadedFile implements UploadedFileInterface
             $this->stream  = $tmpNameOrStream;
             $this->tmpName = $this->stream->getMetadata('uri');
         } elseif (\is_string($tmpNameOrStream)) {
-            if (\file_exists($tmpNameOrStream)) { 
+            if (!\file_exists($tmpNameOrStream)) { 
                 throw new \RuntimeException('Uploaded file does not exists'); 
             }
-            if (\is_uploaded_file($tmpNameOrStream)) {
+            if (!\is_uploaded_file($tmpNameOrStream)) {
                 throw new \RuntimeException('It is not a valid uploaded file');
             }
             $this->tmpName = $tmpNameOrStream;
