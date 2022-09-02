@@ -150,25 +150,22 @@ class UploadedFile implements UploadedFileInterface
         }
 
         if ($this->stream->hasWrapper($targetPath)) {
-
+            try {
+                $targetStream = new Stream($targetPath);
+                $this->moved  = ($targetStream->write((string) $this->stream) === $this->stream->getSize());
+            } catch (\RuntimeException $e) { throw $e; }
         } else {
-
             $target_dir = \dirname($targetPath);
-
             if (\is_writable($target_dir)) {
-
                 if (\file_exists($targetPath)) {
                     throw new \RuntimeException($targetPath.' file is already exists'); 
                 }
-
                 $this->moved = (\PHP_SAPI === 'cli')
                     ? \rename($this->tmpName, $targetPath)
-                    : \move_uploaded_file($this->tmpName, $targetPath);
-                    
+                    : \move_uploaded_file($this->tmpName, $targetPath);                
             } else {
                 throw new \RuntimeException($target_dir.' does not exists or not writable'); 
             }
-
         }
 
         if (!$this->moved) { 
