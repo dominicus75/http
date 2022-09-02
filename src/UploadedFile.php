@@ -103,11 +103,9 @@ class UploadedFile implements UploadedFileInterface
                 throw new \RuntimeException('It is not a valid uploaded file');
             }
             $this->tmpName = $tmpNameOrStream;
-            $stream = \fopen($this->tmpName, 'r+');
-            if (!\is_resource($stream)) {
-                throw new \RuntimeException('Unable to open the stream');
-            }
-            $this->stream = new Stream($stream);           
+            try {
+                $this->stream = new Stream($this->tmpName);           
+            } catch (\RuntimeException $e) { throw $e; }
         }
            
         $realFileSize          = $this->stream->getSize();
