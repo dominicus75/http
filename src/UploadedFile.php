@@ -151,21 +151,25 @@ class UploadedFile implements UploadedFileInterface
             throw new \RuntimeException("Uploaded file has already been moved to a new location"); 
         }
 
-        $target_dir = \dirname($targetPath);
+        if ($this->stream->hasWrapper($targetPath)) {
 
-        if (\is_writable($target_dir)) {
-
-            if (\file_exists($targetPath)) {
-                throw new \RuntimeException($targetPath.' file is already exists'); 
-            }
-
-            $this->moved = (\PHP_SAPI === 'cli')
-                ? \rename($this->tmpName, $targetPath)
-                : \move_uploaded_file($this->tmpName, $targetPath);
-                
-        } else {
-            throw new \RuntimeException($target_dir.' is not writable'); 
         }
+
+            $target_dir = \dirname($targetPath);
+
+            if (\is_writable($target_dir)) {
+
+                if (\file_exists($targetPath)) {
+                    throw new \RuntimeException($targetPath.' file is already exists'); 
+                }
+
+                $this->moved = (\PHP_SAPI === 'cli')
+                    ? \rename($this->tmpName, $targetPath)
+                    : \move_uploaded_file($this->tmpName, $targetPath);
+                    
+            } else {
+                throw new \RuntimeException($target_dir.' is not writable'); 
+            }
 
         if (!$this->moved) { 
             throw new \RuntimeException('Uploaded file could not be moved to '.$targetPath); 

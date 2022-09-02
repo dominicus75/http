@@ -43,7 +43,7 @@ class StreamTest extends TestCase
 
         $this->valid_constructor_arguments = [
             'resource' => $this->resource,
-            'string'   => $this->string,
+            'string'   => 'php://temp',
             'empty'    => $this->empty
         ];
 
@@ -54,9 +54,9 @@ class StreamTest extends TestCase
                 'size'       => $this->filesize
             ],
             'string' => [
-                '__toString' => $this->string,
+                '__toString' => $this->empty,
                 'uri'        => 'php://temp',
-                'size'       => $this->textsize
+                'size'       => 0
             ],
             'empty' => [
                 '__toString' => $this->empty,
@@ -70,7 +70,7 @@ class StreamTest extends TestCase
     {
         foreach ($this->invalid_constructor_arguments as $type => $value) {
             $this->expectException(\InvalidArgumentException::class);
-            $this->expectExceptionMessage('$body must be a string or resource.');
+            $this->expectExceptionMessage('$resource must be a string or resource.');
             new Stream($value);
         }
     }

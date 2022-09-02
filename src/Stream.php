@@ -13,6 +13,10 @@ use Psr\Http\Message\StreamInterface;
  */
 class Stream implements StreamInterface
 {
+    /**
+     * @var string List of registered streams available on the running system as regex pattern
+     */
+    private string $wrappers;
 
     /** @var resource|null  */
     protected $stream = null;
@@ -20,19 +24,26 @@ class Stream implements StreamInterface
     /**
      * Creates a new PSR-7 stream.
      *
-     * @param string|resource $body
+     * @param string|resource $resource
      *
      * @throws \InvalidArgumentException
      */
-    public function __construct($body = '')
+    public function __construct($resource = '')
     {
-        if (\is_resource($body)) {
-            $this->stream = $body;
-        } elseif (\is_string($body)) {
-            $this->stream = \fopen('php://temp', 'rw+');
-            $this->write($body);
+        $this->wrappers = '('.implode('|', stream_get_wrappers()).')';
+
+        if (\is_resource($resource)) {
+            $this->stream = $resource;
+        } elseif (\is_string($resource)) {
+            if (empty($resource)) { 
+                $this->stream = \fopen('php://temp', 'rw+'); 
+            } elseif ($this->hasWrapper($resource) xor \file_exists($resource)) {
+                $this->stream = \fopen($resource, 'rw+');
+            } else {
+                throw new \RuntimeException('Unable to open the stream. Given resource does not exists.');
+            }
         } else {
-            throw new \InvalidArgumentException('$body must be a string or resource.');
+            throw new \InvalidArgumentException('$resource must be a string or resource.');
         }
     }
 
@@ -272,6 +283,22 @@ class Stream implements StreamInterface
         if (!isset($this->stream)) { return $key ? null : []; }
         $meta = \stream_get_meta_data($this->stream);
         return \is_null($key) ? $meta : ($meta[$key] ?? null);
+    }
+
+    ##########################
+    # non-standard functions #
+    ##########################
+
+	/**
+	 * Retrieve list of registered streams available on the running system
+	 * @return string list of registered streams as regex pattern
+	 */
+	public function getWrappers(): string { return $this->wrappers; }
+
+
+    public function hasWrapper(string $resource): bool
+    {
+        return (bool) \preg_match('/^'.$this->wrappers.'\:\/\//i', $resource);
     }
 
 }
