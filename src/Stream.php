@@ -295,10 +295,15 @@ class Stream implements StreamInterface
 	 */
 	public function getWrappers(): string { return $this->wrappers; }
 
-
-    public function hasWrapper(string $resource): bool
+    /**
+     * Checks if the given string has a stream wrapper or not 
+     *
+     * @param string $path
+     * @return boolean true, if path has a wrapper, false otherwise
+     */
+    public function hasWrapper(string $path): bool
     {
-        return (bool) \preg_match('/^'.$this->wrappers.'\:\/\//i', $resource);
+        return (bool) \preg_match('/^'.$this->wrappers.'\:\/\//i', $path);
     }
 
 }

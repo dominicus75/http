@@ -151,7 +151,7 @@ class UploadedFile implements UploadedFileInterface
 
         if ($this->stream->hasWrapper($targetPath)) {
 
-        }
+        } else {
 
             $target_dir = \dirname($targetPath);
 
@@ -166,8 +166,10 @@ class UploadedFile implements UploadedFileInterface
                     : \move_uploaded_file($this->tmpName, $targetPath);
                     
             } else {
-                throw new \RuntimeException($target_dir.' is not writable'); 
+                throw new \RuntimeException($target_dir.' does not exists or not writable'); 
             }
+
+        }
 
         if (!$this->moved) { 
             throw new \RuntimeException('Uploaded file could not be moved to '.$targetPath); 
