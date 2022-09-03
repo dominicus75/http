@@ -126,15 +126,6 @@ class UploadedFileTest extends TestCase
         ];
 
         self::$constructor_exceptions = [
-            'file_does_not_exists' => [
-                'values'  => [
-                    self::$tst_dir.'uploaded_file.txt',
-                    self::$tmp_dir.'uploaded_file.txt',
-                    self::$upl_dir.'uploaded_file.txt',
-                ],
-                'throws'  => self::$throws['runtime'],
-                'message' => 'Uploaded file does not exists'
-            ],
             'file_is_not_uploaded' => [
                 'values'  => \glob(self::$tst_dir.'*.*'),
                 'throws'  => self::$throws['runtime'],
@@ -142,10 +133,12 @@ class UploadedFileTest extends TestCase
             ],
             'stream_is_unopenable' => [
                 'values'  => [
-
+                    'php://stream',
+                    'telnet://temp',
+                    'file://memory'
                 ],
                 'throws'  => self::$throws['runtime'],
-                'message' => 'Unable to open the stream'
+                'message' => 'Unable to open the stream. Given resource does not exists.'
             ],
 
         ];
@@ -155,7 +148,7 @@ class UploadedFileTest extends TestCase
         fclose($fh);*/
     }
 
-    public function testInvalidTmpNameOrStreamArgThrownsExceptions()
+    public function testInvalidTmpNameOrStreamArgThrowsExceptions()
     {
         foreach (self::$invalid_constructor_args['tmpNameOrStream']['values'] as $argument) {
             $this->expectException(self::$invalid_constructor_args['tmpNameOrStream']['throws']);
@@ -163,7 +156,7 @@ class UploadedFileTest extends TestCase
         }
     }
 
-    public function testInvalidTypedErrorArgThrownsExceptions()
+    public function testInvalidTypedErrorArgThrowsExceptions()
     {
         foreach (self::$invalid_constructor_args['error']['values'] as $argument) {
             $this->expectException(self::$invalid_constructor_args['error']['throws']);
@@ -171,7 +164,7 @@ class UploadedFileTest extends TestCase
         }
     }
 
-    public function testInvalidErrorArgValueThrownsExceptions()
+    public function testInvalidErrorArgValueThrowsExceptions()
     {
         foreach (self::$invalid_error_codes['values'] as $argument) {
             $this->expectException(self::$invalid_error_codes['throws']);
@@ -180,7 +173,7 @@ class UploadedFileTest extends TestCase
         }
     }
 
-    public function testUploadErrorThrownsExceptions()
+    public function testUploadErrorThrowsExceptions()
     {
         foreach (self::$errors as $code => $message) {
             $this->expectException(self::$throws['runtime']);
@@ -189,7 +182,7 @@ class UploadedFileTest extends TestCase
         }
     }
 
-    public function testInvalidSizeArgThrownsExceptions()
+    public function testInvalidSizeArgThrowsExceptions()
     {
         foreach (self::$invalid_constructor_args['size']['values'] as $argument) {
             $this->expectException(self::$invalid_constructor_args['size']['throws']);
@@ -197,13 +190,25 @@ class UploadedFileTest extends TestCase
         }
     }
 
-    public function testInvalidNameArgThrownsExceptions()
+    public function testInvalidNameArgThrowsExceptions()
     {
         foreach (self::$invalid_constructor_args['name']['values'] as $argument) {
             $this->expectException(self::$invalid_constructor_args['name']['throws']);
             new UploadedFile(self::$stream, \UPLOAD_ERR_OK, self::$stream->getSize(), $argument);
         }
     }
+
+    public function testIfFileNotUploadedConstructorThrowsExceptions()
+    {
+        foreach (self::$constructor_exceptions['file_is_not_uploaded']['values'] as $argument) {
+            $this->expectException(self::$constructor_exceptions['file_is_not_uploaded']['throws']);
+            $this->expectExceptionMessage(self::$constructor_exceptions['file_is_not_uploaded']['message']);
+            new UploadedFile($argument, \UPLOAD_ERR_OK);
+        }
+    }
+
+    
+
 
     public static function tearDownAfterClass(): void
     {

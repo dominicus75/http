@@ -96,9 +96,6 @@ class UploadedFile implements UploadedFileInterface
             $this->stream  = $tmpNameOrStream;
             $this->tmpName = $this->stream->getMetadata('uri');
         } elseif (\is_string($tmpNameOrStream)) {
-            if (!\file_exists($tmpNameOrStream)) { 
-                throw new \RuntimeException('Uploaded file does not exists'); 
-            }
             if (!\is_uploaded_file($tmpNameOrStream)) {
                 throw new \RuntimeException('It is not a valid uploaded file');
             }
@@ -149,7 +146,7 @@ class UploadedFile implements UploadedFileInterface
             throw new \RuntimeException("Uploaded file has already been moved to a new location"); 
         }
 
-        if ($this->stream->hasWrapper($targetPath)) {
+        if ($this->stream->isValidWrapper($targetPath)) {
             try {
                 $targetStream = new Stream($targetPath);
                 $this->moved  = ($targetStream->write((string) $this->stream) === $this->stream->getSize());

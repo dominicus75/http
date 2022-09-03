@@ -25,22 +25,24 @@ class Stream implements StreamInterface
      * Creates a new PSR-7 stream.
      *
      * @param string|resource $resource
-     *
-     * @throws \InvalidArgumentException
+     * @throws \RuntimeException for invalid sream wapper or if given file does not exists
+     * @throws \InvalidArgumentException for invalid argument type
      */
-    public function __construct($resource = '')
+    public function __construct($resource = 'php://temp')
     {
         $this->wrappers = '('.implode('|', stream_get_wrappers()).')';
 
         if (\is_resource($resource)) {
             $this->stream = $resource;
         } elseif (\is_string($resource)) {
-            if (empty($resource)) { 
-                $this->stream = \fopen('php://temp', 'rw+'); 
-            } elseif ($this->hasWrapper($resource) xor \file_exists($resource)) {
-                $this->stream = \fopen($resource, 'rw+');
-            } else {
-                throw new \RuntimeException('Unable to open the stream. Given resource does not exists.');
+            if ($this->isStreamReference($resource) && !$this->isValidWrapper($resource)) {
+                throw new \RuntimeException('Given stream wapper is invalid.');
+            } 
+            if (!$this->isStreamReference($resource) && !\file_exists($resource)) {
+                throw new \RuntimeException('Given file does not exists.');
+            }
+            if (false === $this->stream = \fopen($resource, 'rw+')) { 
+                throw new \RuntimeException('Unable to open the stream'); 
             }
         } else {
             throw new \InvalidArgumentException('$resource must be a string or resource.');
@@ -296,12 +298,23 @@ class Stream implements StreamInterface
 	public function getWrappers(): string { return $this->wrappers; }
 
     /**
-     * Checks if the given string has a stream wrapper or not 
+     * Checks if the given string is a stream reference or not 
      *
      * @param string $path
-     * @return boolean true, if path has a wrapper, false otherwise
+     * @return boolean
      */
-    public function hasWrapper(string $path): bool
+    public function isStreamReference(string $path): bool
+    {
+        return \str_contains($path, '://');
+    }
+
+    /**
+     * Checks if the given string has a valid stream wrapper or not 
+     *
+     * @param string $path
+     * @return boolean true, if path has a valid wrapper, false otherwise
+     */
+    public function isValidWrapper(string $path): bool
     {
         return (bool) \preg_match('/^'.$this->wrappers.'\:\/\//i', $path);
     }

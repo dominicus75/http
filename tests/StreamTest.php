@@ -14,165 +14,228 @@ use PHPUnit\Framework\TestCase;
  */
 class StreamTest extends TestCase
 {
-    private array $invalid_constructor_arguments;
-    private array $valid_constructor_arguments;
-    private array $results_for_valid_arguments;
-    private string $textfile;
-    private int $filesize;
-    private int $textsize;
-    private $resource;
-    private string $string;
-    private string $empty = '';
+    private static string $txtfile = __DIR__.DIRECTORY_SEPARATOR.'lorem.txt';
+    private static string $empty = '';
 
-    protected function setUp(): void
+    public function getInvalidConstructorArgs(string $type): array
     {
-        $this->invalid_constructor_arguments = [
-            'bool'      => true,
-            'int'       => 12345,
-            'float'     => 1.23456,
-            'object'    => new \stdClass(),
-            'array'     => [],
-            'callable'  => function(): void { echo "Hello world!"; }
-        ];
-
-        $this->textfile = __DIR__.DIRECTORY_SEPARATOR.'lorem.txt';
-        $this->filesize = \filesize($this->textfile);
-        $this->resource = fopen($this->textfile, 'r+');
-        $this->string   = \fread($this->resource, $this->filesize);
-        $this->textsize = \strlen($this->string);
-
-        $this->valid_constructor_arguments = [
-            'resource' => $this->resource,
-            'string'   => 'php://temp',
-            'empty'    => $this->empty
-        ];
-
-        $this->results_for_valid_arguments = [
-            'resource' => [
-                '__toString' => $this->string,
-                'uri'        => $this->textfile,
-                'size'       => $this->filesize
+        $args = [
+            'bad_type'    => [
+                'values'  => [
+                    'bool'      => true,
+                    'int'       => 12345,
+                    'float'     => 1.23456,
+                    'object'    => new \stdClass(),
+                    'array'     => [],
+                    'callable'  => function(): void { echo "Hello world!"; }
+                ],
+                'throws'  => \InvalidArgumentException::class,
+                'message' => '$resource must be a string or resource.'   
             ],
-            'string' => [
-                '__toString' => $this->empty,
-                'uri'        => 'php://temp',
-                'size'       => 0
+            'bad_value'   => [
+                'values'  => [
+                    'html://stream',
+                    'telnet://temp',
+                    'file://memory'
+                ],
+                'throws'  => \RuntimeException::class,
+                'message' => 'Given stream wapper is invalid.'
             ],
-            'empty' => [
-                '__toString' => $this->empty,
-                'uri'        => 'php://temp',
-                'size'       => 0
+            'not_found'   => [
+                'values'  => [
+                    '/tmp/something.txt',
+                    '/etc/something.csv',
+                    '/home/somebody/foo.html'
+                ],
+                'throws'  => \RuntimeException::class,
+                'message' => 'Given file does not exists.'
             ]
         ];
+        return $args[$type];
+    }
+
+    public function getValidConstructorArgs(string $type = ''): array
+    {
+        $args = [
+            'resource'    => [
+                'values'  => [
+                    \fopen(self::$txtfile, 'r+')
+                ],
+                'results' => [
+                    [
+                        '__toString' => \fread(\fopen(self::$txtfile, 'r+'), \filesize(self::$txtfile)),
+                        'uri'        => self::$txtfile,
+                        'size'       => \filesize(self::$txtfile)    
+                    ]
+                ]
+            ],
+            'string'      => [
+                'values'  => [
+                    'php://temp'
+                ],
+                'results' => [
+                    [
+                        '__toString' => self::$empty,
+                        'uri'        => 'php://temp',
+                        'size'       => 0
+                    ]
+                ]
+            ]
+        ];
+        return empty($type) ? $args : $args[$type];
     }
 
     public function testConstructorThrowsExceptionOnInvalidArgument(): void
     {
-        foreach ($this->invalid_constructor_arguments as $type => $value) {
-            $this->expectException(\InvalidArgumentException::class);
-            $this->expectExceptionMessage('$resource must be a string or resource.');
+        $bad_type = $this->getInvalidConstructorArgs('bad_type');
+        foreach ($bad_type['values'] as $value) {
+            $this->expectException($bad_type['throws']);
+            $this->expectExceptionMessage($bad_type['message']);
+            new Stream($value);
+        }
+    }
+
+    
+    public function testIfStreamWrapperIsInvalidConstructorThrowsExceptions()
+    {
+        $bad_value = $this->getInvalidConstructorArgs('bad_value');
+        foreach ($bad_value['values'] as $value) {
+            $this->expectException($bad_value['throws']);
+            $this->expectExceptionMessage($bad_value['message']);
+            new Stream($value);
+        }
+    }
+
+    public function testIfGivenFileDoesNotExistsConstructorThrowsExceptions()
+    {
+        $not_found = $this->getInvalidConstructorArgs('not_found');
+        foreach ($not_found['values'] as $value) {
+            $this->expectException($not_found['throws']);
+            $this->expectExceptionMessage($not_found['message']);
             new Stream($value);
         }
     }
 
     public function testConstructorInitializesProperties()
     {
-        foreach ($this->valid_constructor_arguments as $type => $value) {
-            $stream = new Stream($value);
-            $this->assertInstanceOf('Psr\Http\Message\StreamInterface', $stream);
-            $this->assertTrue($stream->isReadable());
-            $this->assertTrue($stream->isWritable());
-            $this->assertTrue($stream->isSeekable());
-            $this->assertEquals($this->results_for_valid_arguments[$type]['uri'], $stream->getMetadata('uri'));
-            $this->assertIsArray($stream->getMetadata());
-            $this->assertEquals($this->results_for_valid_arguments[$type]['size'], $stream->getSize());
-            $this->assertFalse($stream->eof());
-            $stream->close();
+        $arguments = $this->getValidConstructorArgs();
+
+        foreach ($arguments as $type => $arg) {
+            foreach ($arg['values'] as $index => $value) {
+                $stream = new Stream($value);
+                $this->assertInstanceOf('Psr\Http\Message\StreamInterface', $stream);
+                $this->assertTrue($stream->isReadable());
+                $this->assertTrue($stream->isWritable());
+                $this->assertTrue($stream->isSeekable());
+                $this->assertEquals($arg['results'][$index]['uri'], $stream->getMetadata('uri'));
+                $this->assertIsArray($stream->getMetadata());
+                $this->assertEquals($arg['results'][$index]['size'], $stream->getSize());
+                $this->assertFalse($stream->eof());
+                $stream->close();
+            }
         }
     }
 
     public function testStreamClosesHandleOnDestruct()
     {
-        foreach ($this->valid_constructor_arguments as $type => $value) {
-            $stream = new Stream($value);
-            $this->assertInstanceOf('Psr\Http\Message\StreamInterface', $stream);
-            unset($stream);
-            $this->assertFalse(is_resource($value));   
+        $arguments = $this->getValidConstructorArgs();
+
+        foreach ($arguments as $type => $arg) {
+            foreach ($arg['values'] as $index => $value) {
+                $stream = new Stream($value);
+                $this->assertInstanceOf('Psr\Http\Message\StreamInterface', $stream);
+                unset($stream);
+                $this->assertFalse(is_resource($value));   
+            }
         }
     }
 
     public function testConvertsToString()
     {
-        foreach ($this->valid_constructor_arguments as $type => $value) {
-            $stream = new Stream($value);
-            $this->assertInstanceOf('Psr\Http\Message\StreamInterface', $stream);
-            $this->assertEquals($this->empty, $stream->getContents());
-            $this->assertEquals($this->results_for_valid_arguments[$type]['__toString'], $stream->__toString());
-            $this->assertEquals($this->results_for_valid_arguments[$type]['__toString'], (string) $stream);
-            $this->assertTrue($stream->eof());
-            $stream->rewind();
-            $this->assertFalse($stream->eof());
-            $this->assertEquals($this->results_for_valid_arguments[$type]['__toString'], $stream->getContents());
-            $this->assertEquals($this->results_for_valid_arguments[$type]['__toString'], $stream->__toString());
-            $this->assertEquals($this->results_for_valid_arguments[$type]['__toString'], (string) $stream);
-            $stream->close();
+        $arguments = $this->getValidConstructorArgs();
+
+        foreach ($arguments as $type => $arg) {
+            foreach ($arg['values'] as $index => $value) {
+                $stream = new Stream($value);
+                $this->assertInstanceOf('Psr\Http\Message\StreamInterface', $stream);
+                $this->assertEquals($arg['results'][$index]['__toString'], $stream->getContents());
+                $this->assertEquals($arg['results'][$index]['__toString'], $stream->__toString());
+                $this->assertEquals($arg['results'][$index]['__toString'], (string) $stream);
+                $this->assertTrue($stream->eof());
+                $stream->rewind();
+                $this->assertFalse($stream->eof());
+                $this->assertEquals($arg['results'][$index]['__toString'], $stream->getContents());
+                $this->assertEquals($arg['results'][$index]['__toString'], $stream->__toString());
+                $this->assertEquals($arg['results'][$index]['__toString'], (string) $stream);
+                $stream->close();
+            }
         }
     }
 
     public function testBuildFromString()
     {
-        $stream = new Stream($this->valid_constructor_arguments['string']);
+        $argument = $this->getValidConstructorArgs('string');
+
+        $stream = new Stream($argument['values'][0]);
         $this->assertInstanceOf('Psr\Http\Message\StreamInterface', $stream);
-        $this->assertEquals($this->empty, $stream->getContents());
-        $this->assertEquals($this->results_for_valid_arguments['string']['__toString'], $stream->__toString());
-        $this->assertEquals($this->results_for_valid_arguments['string']['__toString'], (string) $stream);
+        $this->assertEquals(self::$empty, $stream->getContents());
+        $this->assertEquals($argument['results'][0]['__toString'], $stream->__toString());
+        $this->assertEquals($argument['results'][0]['__toString'], (string) $stream);
         $this->assertTrue($stream->eof());
         $stream->rewind();
         $this->assertFalse($stream->eof());
-        $this->assertEquals($this->results_for_valid_arguments['string']['__toString'], $stream->getContents());
-        $this->assertEquals($this->results_for_valid_arguments['string']['__toString'], $stream->__toString());
-        $this->assertEquals($this->results_for_valid_arguments['string']['__toString'], (string) $stream);
+        $this->assertEquals($argument['results'][0]['__toString'], $stream->getContents());
+        $this->assertEquals($argument['results'][0]['__toString'], $stream->__toString());
+        $this->assertEquals($argument['results'][0]['__toString'], (string) $stream);
         $stream->close();
 
-        $stream = new Stream($this->valid_constructor_arguments['empty']);
+        $stream = new Stream();
         $this->assertInstanceOf('Psr\Http\Message\StreamInterface', $stream);
-        $this->assertEquals($this->empty, $stream->getContents());
-        $this->assertEquals($this->results_for_valid_arguments['empty']['__toString'], $stream->__toString());
-        $this->assertEquals($this->results_for_valid_arguments['empty']['__toString'], (string) $stream);
+        $this->assertEquals(self::$empty, $stream->getContents());
+        $this->assertEquals(self::$empty, $stream->__toString());
+        $this->assertEquals(self::$empty, (string) $stream);
         $this->assertTrue($stream->eof());
         $stream->rewind();
         $this->assertFalse($stream->eof());
-        $this->assertEquals($this->results_for_valid_arguments['empty']['__toString'], $stream->getContents());
-        $this->assertEquals($this->results_for_valid_arguments['empty']['__toString'], $stream->__toString());
-        $this->assertEquals($this->results_for_valid_arguments['empty']['__toString'], (string) $stream);
+        $this->assertEquals(self::$empty, $stream->getContents());
+        $this->assertEquals(self::$empty, $stream->__toString());
+        $this->assertEquals(self::$empty, (string) $stream);
         $stream->close();
     }
 
     public function testGetsContents()
     {
-        foreach ($this->valid_constructor_arguments as $type => $value) {
-            $stream = new Stream($value);
-            $this->assertInstanceOf('Psr\Http\Message\StreamInterface', $stream);
-            $this->assertEquals($this->empty, $stream->getContents());
-            $this->assertTrue($stream->eof());
-            $stream->seek(0);
-            $this->assertFalse($stream->eof());
-            $this->assertEquals($this->results_for_valid_arguments[$type]['__toString'], $stream->getContents());
-            $this->assertEquals($this->empty, $stream->getContents());
-            $stream->close();
+        $arguments = $this->getValidConstructorArgs();
+
+        foreach ($arguments as $type => $arg) {
+            foreach ($arg['values'] as $index => $value) {
+                $stream = new Stream($value);
+                $this->assertInstanceOf('Psr\Http\Message\StreamInterface', $stream);
+                $this->assertEquals($arg['results'][$index]['__toString'], $stream->getContents());
+                $this->assertTrue($stream->eof());
+                $stream->seek(0);
+                $this->assertFalse($stream->eof());
+                $this->assertEquals($arg['results'][$index]['__toString'], $stream->getContents());
+                $this->assertEquals(self::$empty, $stream->getContents());
+                $stream->close();
+            }
         }
     }
 
     public function testChecksEof()
     {
-        foreach ($this->valid_constructor_arguments as $type => $value) {
-            $stream = new Stream($value);
-            $this->assertInstanceOf('Psr\Http\Message\StreamInterface', $stream);
-            $this->assertSame($this->results_for_valid_arguments[$type]['size'], $stream->tell());
-            $this->assertFalse($stream->eof(), 'Pointer: '.(string)$stream->tell().', size: '.(string)$stream->getSize());
-            $this->assertSame($this->empty, $stream->read(1));
-            $this->assertTrue($stream->eof(), 'Pointer: '.(string)$stream->tell().', size: '.(string)$stream->getSize());
-            $stream->close();
+        $arguments = $this->getValidConstructorArgs();
+
+        foreach ($arguments as $type => $arg) {
+            foreach ($arg['values'] as $index => $value) {
+                $stream = new Stream($value);
+                $this->assertInstanceOf('Psr\Http\Message\StreamInterface', $stream);
+                $this->assertSame(0, $stream->tell());
+                $this->assertFalse($stream->eof(), 'Pointer: '.(string)$stream->tell().', size: '.(string)$stream->getSize());
+                $this->assertSame($arg['results'][$index]['__toString'], $stream->getContents());
+                $this->assertTrue($stream->eof(), 'Pointer: '.(string)$stream->tell().', size: '.(string)$stream->getSize());
+                $stream->close();
+            }
         }
     }
 
@@ -272,14 +335,14 @@ class StreamTest extends TestCase
         }
     }
 
-    public function testCloseClearProperties()
+    /*public function testCloseClearProperties()
     {
-        foreach ($this->valid_constructor_arguments as $type => $value) {
+        foreach (self::$valid_constructor_arguments as $type => $value) {
             $stream = new Stream($value);
             $this->assertInstanceOf('Psr\Http\Message\StreamInterface', $stream);
             $stream->close();
-            $this->assertEquals($this->empty, $stream->__toString());
-            $this->assertEquals($this->empty, (string) $stream);
+            $this->assertEquals(self::$empty, $stream->__toString());
+            $this->assertEquals(self::$empty, (string) $stream);
             $this->assertFalse($stream->isSeekable());
             $this->assertFalse($stream->isReadable());
             $this->assertFalse($stream->isWritable());
@@ -289,6 +352,6 @@ class StreamTest extends TestCase
             $this->assertNull($stream->detach());
             $this->assertTrue($stream->eof());
         }
-    }
+    }*/
 
 }
