@@ -162,6 +162,9 @@ class StreamTest extends TestCase
                 $this->assertEquals($arg['results'][$index]['__toString'], $stream->__toString());
                 $this->assertEquals($arg['results'][$index]['__toString'], (string) $stream);
                 $this->assertTrue($stream->eof());
+                $this->assertEquals(self::$empty, $stream->getContents());
+                $this->assertEquals($arg['results'][$index]['__toString'], $stream->__toString());
+                $this->assertEquals($arg['results'][$index]['__toString'], (string) $stream);
                 $stream->rewind();
                 $this->assertFalse($stream->eof());
                 $this->assertEquals($arg['results'][$index]['__toString'], $stream->getContents());
