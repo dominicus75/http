@@ -353,11 +353,11 @@ class Stream implements StreamInterface
     # non-standard functions #
     ##########################
 
-	/**
-	 * Retrieve list of registered streams available on the running system
-	 * @return string list of registered streams as regex pattern
-	 */
-	public function getWrappers(): string { return $this->wrappers; }
+    /**
+     * Retrieve list of registered streams available on the running system
+     * @return string list of registered streams as regex pattern
+     */
+    public function getWrappers(): string { return $this->wrappers; }
 
     /**
      * Checks if the given string is a stream reference or not 
