@@ -88,7 +88,7 @@ class Stream implements StreamInterface
         string $mode    = '', 
         string $content = ''
     ) {
-        $this->wrappers = '('.implode('|', stream_get_wrappers()).')';
+        $this->wrappers = '('.implode('|', \stream_get_wrappers()).')';
 
         if (\is_string($resource)) {
             $resource = empty($resource) ? 'php://temp' : $resource;
