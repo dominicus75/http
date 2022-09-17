@@ -76,7 +76,7 @@ abstract class AbstractMessage implements MessageInterface
             if($body instanceof StreamInterface || \is_null($body)) {
                 $this->body = $body;
             } elseif(\is_string($body)) {
-                $this->body = new Stream($body);
+                $this->body = new Stream(content: $body);
             }
         } catch (\InvalidArgumentException $e) { throw $e; }
     }
@@ -102,13 +102,18 @@ abstract class AbstractMessage implements MessageInterface
      *
      * @param string $version HTTP protocol version
      * @return static
+     * @throws \InvalidArgumentException for invalid protocol version.
      */
     public function withProtocolVersion($version): AbstractMessage
     {
         if ($version === $this->version) { return $this; }
-        $clone = clone $this;
-        $clone->version = $version;
-        return $clone;
+        try {
+            $clone = clone $this;
+            $clone->setProtocolVersion($version);
+            return $clone;
+        } catch (\InvalidArgumentException $e) {
+            throw $e;
+        }
     }
 
     /**
