@@ -14,39 +14,101 @@ use Psr\Http\Message\StreamInterface;
 class Stream implements StreamInterface
 {
     /**
+     * @see https://www.php.net/manual/en/function.fopen.php
+     */
+    private const READABLE = [
+        'r'   => true, 
+        'rb'  => true, 
+        'rt'  => true, 
+        'r+'  => true, 
+        'r+b' => true, 
+        'r+t' => true,
+        'w+'  => true, 
+        'w+b' => true, 
+        'w+t' => true, 
+        'a+'  => true,
+        'a+b' => true,
+        'a+t' => true, 
+        'x+'  => true, 
+        'x+b' => true,
+        'x+t' => true, 
+        'c+'  => true,
+        'c+b' => true, 
+        'c+t' => true
+    ];
+    
+    /**
+     * @see https://www.php.net/manual/en/function.fopen.php
+     */
+    private const WRITABLE = [
+        'r+'  => true, 
+        'r+b' => true, 
+        'r+t' => true,
+        'w'   => true, 
+        'wb'  => true, 
+        'wt'  => true, 
+        'w+'  => true, 
+        'w+b' => true,
+        'w+t' => true, 
+        'rw'  => true, 
+        'rw+' => true, 
+        'a'   => true, 
+        'a+'  => true,
+        'a+b' => true,
+        'a+t' => true, 
+        'x'   => true,
+        'x+'  => true,
+        'x+b' => true,
+        'x+t' => true, 
+        'c'   => true, 
+        'c+'  => true, 
+        'c+b' => true, 
+        'c+t' => true
+    ];
+
+    /**
      * @var string List of registered streams available on the running system as regex pattern
      */
     private string $wrappers;
 
-    /** @var resource|null  */
-    protected $stream = null;
+    /** @var resource a special variable, holding a reference to an external resource */
+    protected $stream;
 
     /**
      * Creates a new PSR-7 stream.
      *
-     * @param string|resource $resource
+     * @param string|resource $resource Specifies the file, URL or resource to open (optional)
+     * @param string $mode specifies the type of access you require to the stream (optional)
+     * @param string $content text content of the stream (optional)
      * @throws \RuntimeException for invalid sream wapper or if given file does not exists
      * @throws \InvalidArgumentException for invalid argument type
      */
-    public function __construct($resource = 'php://temp')
-    {
+    public function __construct(
+        $resource       = '', 
+        string $mode    = '', 
+        string $content = ''
+    ) {
         $this->wrappers = '('.implode('|', stream_get_wrappers()).')';
 
-        if (\is_resource($resource)) {
-            $this->stream = $resource;
-        } elseif (\is_string($resource)) {
+        if (\is_string($resource)) {
+            $resource = empty($resource) ? 'php://temp' : $resource;
+            $mode     = !empty($mode) && (isset(self::READABLE[$mode]) || isset(self::WRITABLE[$mode])) ? $mode : 'rw+';
             if ($this->isStreamReference($resource) && !$this->isValidWrapper($resource)) {
                 throw new \RuntimeException('Given stream wapper is invalid.');
             } 
             if (!$this->isStreamReference($resource) && !\file_exists($resource)) {
                 throw new \RuntimeException('Given file does not exists.');
             }
-            if (false === $this->stream = \fopen($resource, 'rw+')) { 
+            if (false === $this->stream = \fopen($resource, $mode)) { 
                 throw new \RuntimeException('Unable to open the stream'); 
             }
+        } elseif (\is_resource($resource)) {
+            $this->stream = $resource;
         } else {
             throw new \InvalidArgumentException('$resource must be a string or resource.');
         }
+
+        if (!empty($content)) { $this->write($content); }
     }
 
     /**
@@ -197,7 +259,7 @@ class Stream implements StreamInterface
     {
         if (isset($this->stream)) {
             $mode = $this->getMetadata('mode');
-            return $mode ? (bool) \preg_match('/a|w|r\+|rb\+|rw|x|c/', $mode) : false;
+            return $mode ? isset(self::WRITABLE[$mode]) : false;
         } else { return false; }
     }
 
@@ -226,7 +288,7 @@ class Stream implements StreamInterface
     {
         if (isset($this->stream)) {
             $mode = $this->getMetadata('mode');
-            return $mode ? (bool) \preg_match('/r|a\+|ab\+|w\+|wb\+|x\+|xb\+|c\+|cb\+/', $mode) : false;
+            return $mode ? isset(self::READABLE[$mode]) : false;
         } else { return false; }
     }
 
