@@ -67,9 +67,9 @@ class Stream implements StreamInterface
     ];
 
     /**
-     * @var string List of registered streams available on the running system as regex pattern
+     * @var array List of registered streams available on the running system
      */
-    private string $wrappers;
+    private array $wrappers;
 
     /** @var resource a special variable, holding a reference to an external resource */
     protected $stream;
@@ -88,15 +88,16 @@ class Stream implements StreamInterface
         string $mode    = '', 
         string $content = ''
     ) {
-        $this->wrappers = '('.implode('|', \stream_get_wrappers()).')';
+        $this->wrappers = \stream_get_wrappers();
 
         if (\is_string($resource)) {
             $resource = empty($resource) ? 'php://temp' : $resource;
             $mode     = !empty($mode) && (isset(self::READABLE[$mode]) || isset(self::WRITABLE[$mode])) ? $mode : 'rw+';
-            if ($this->isStreamReference($resource) && !$this->isValidWrapper($resource)) {
+            $wrapper  = $this->getUsedWrapper($resource);
+            if (empty($wrapper)) {
                 throw new \RuntimeException('Given stream wapper is invalid.');
             } 
-            if (!$this->isStreamReference($resource) && !\file_exists($resource)) {
+            if ($wrapper === 'file' && !\file_exists($resource)) {
                 throw new \RuntimeException('Given file does not exists.');
             }
             if (false === $this->stream = \fopen($resource, $mode)) { 
@@ -355,30 +356,24 @@ class Stream implements StreamInterface
 
     /**
      * Retrieve list of registered streams available on the running system
-     * @return string list of registered streams as regex pattern
+     * @return array 
      */
-    public function getWrappers(): string { return $this->wrappers; }
+    public function getWrappers(): array { return $this->wrappers; }
 
     /**
-     * Checks if the given string is a stream reference or not 
+     * Retrieve the currently used wrapper type of given path
      *
      * @param string $path
-     * @return boolean
+     * @return string the currently used wrapper or empty string, if wrapper, what
+     * given path contains is invalid.
      */
-    public function isStreamReference(string $path): bool
+    public function getUsedWrapper(string $path): string
     {
-        return \str_contains($path, '://');
+        $result = 'file';
+        if (\str_contains($path, '://')) {
+            $path_array = \explode('://', $path);
+            $result = \in_array($path_array[0], $this->wrappers) ? $path_array[0] : '';
+        }
+        return $result;
     }
-
-    /**
-     * Checks if the given string has a valid stream wrapper or not 
-     *
-     * @param string $path
-     * @return boolean true, if path has a valid wrapper, false otherwise
-     */
-    public function isValidWrapper(string $path): bool
-    {
-        return (bool) \preg_match('/^'.$this->wrappers.'\:\/\//i', $path);
-    }
-
 }

@@ -68,7 +68,7 @@ class UploadedFile implements UploadedFileInterface
     /**
      * The constructor method. Creates a new UploadedFile instance.
      *
-     * @param StreamInterface|string $tmpNameOrStream The temporary filename of the file in which 
+     * @param StreamInterface|string $file The temporary filename of the file in which 
      * the uploaded file was stored on the server, or a stream which representing the uploaded file
      * @param integer $error The error code associated with this file upload
      * @param integer|null $size The size, in bytes, of the uploaded file
@@ -78,7 +78,7 @@ class UploadedFile implements UploadedFileInterface
      * @throws \RuntimeException if file uploading fails or file is not a valid uploaded file
      */
     public function __construct(
-        StreamInterface|string $tmpNameOrStream,
+        StreamInterface|string $file,
         int $error,
         ?int $size    = null,
         ?string $name = null
@@ -92,16 +92,16 @@ class UploadedFile implements UploadedFileInterface
             throw new \RuntimeException(self::ERRORS[$error]);
         } 
 
-        if ($tmpNameOrStream instanceof StreamInterface) {
-            $this->stream  = $tmpNameOrStream;
+        if ($file instanceof StreamInterface) {
+            $this->stream  = $file;
             $this->tmpName = $this->stream->getMetadata('uri');
-        } elseif (\is_string($tmpNameOrStream)) {
-            if (!\is_uploaded_file($tmpNameOrStream)) {
+        } elseif (\is_string($file)) {
+            if (!\is_uploaded_file($file)) {
                 throw new \RuntimeException('It is not a valid uploaded file');
             }
-            $this->tmpName = $tmpNameOrStream;
+            $this->tmpName = $file;
             try {
-                $this->stream = new Stream($this->tmpName);           
+                $this->stream = new Stream(resource: $this->tmpName);           
             } catch (\RuntimeException $e) { throw $e; }
         }
            
@@ -148,7 +148,7 @@ class UploadedFile implements UploadedFileInterface
 
         if ($this->stream->isValidWrapper($targetPath)) {
             try {
-                $targetStream = new Stream($targetPath);
+                $targetStream = new Stream(resource: $targetPath);
                 $this->moved  = ($targetStream->write((string) $this->stream) === $this->stream->getSize());
             } catch (\RuntimeException $e) { throw $e; }
         } else {

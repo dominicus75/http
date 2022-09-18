@@ -338,23 +338,27 @@ class StreamTest extends TestCase
         }
     }
 
-    /*public function testCloseClearProperties()
+    public function testCloseClearProperties()
     {
-        foreach (self::$valid_constructor_arguments as $type => $value) {
-            $stream = new Stream($value);
-            $this->assertInstanceOf('Psr\Http\Message\StreamInterface', $stream);
-            $stream->close();
-            $this->assertEquals(self::$empty, $stream->__toString());
-            $this->assertEquals(self::$empty, (string) $stream);
-            $this->assertFalse($stream->isSeekable());
-            $this->assertFalse($stream->isReadable());
-            $this->assertFalse($stream->isWritable());
-            $this->assertNull($stream->getSize());
-            $this->assertEmpty($stream->getMetadata()); 
-            $this->assertNull($stream->getMetadata('foo'));  
-            $this->assertNull($stream->detach());
-            $this->assertTrue($stream->eof());
+        $arguments = $this->getValidConstructorArgs();
+
+        foreach ($arguments as $type => $arg) {
+            foreach ($arg['values'] as $index => $value) {
+                $stream = new Stream($value);
+                $this->assertInstanceOf('Psr\Http\Message\StreamInterface', $stream);
+                $stream->close();
+                $this->assertEquals(self::$empty, $stream->__toString());
+                $this->assertEquals(self::$empty, (string) $stream);
+                $this->assertFalse($stream->isSeekable());
+                $this->assertFalse($stream->isReadable());
+                $this->assertFalse($stream->isWritable());
+                $this->assertNull($stream->getSize());
+                $this->assertEmpty($stream->getMetadata()); 
+                $this->assertNull($stream->getMetadata('uri'));  
+                $this->assertNull($stream->detach());
+                $this->assertTrue($stream->eof());
+            }
         }
-    }*/
+    }
 
 }

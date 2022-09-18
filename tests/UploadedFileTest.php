@@ -66,10 +66,10 @@ class UploadedFileTest extends TestCase
         ];
         $object   = (object) $array;
         self::$resource = \fopen('php://temp', 'rw+');
-        self::$stream   = new Stream(self::$resource);
+        self::$stream   = new Stream(resource: self::$resource);
 
         self::$invalid_constructor_args = [
-            'tmpNameOrStream' => [
+            'file' => [
                 'values' => [
                     $null,
                     $bool,
@@ -148,10 +148,10 @@ class UploadedFileTest extends TestCase
         fclose($fh);*/
     }
 
-    public function testInvalidTmpNameOrStreamArgThrowsExceptions()
+    public function testInvalidFileArgThrowsExceptions()
     {
-        foreach (self::$invalid_constructor_args['tmpNameOrStream']['values'] as $argument) {
-            $this->expectException(self::$invalid_constructor_args['tmpNameOrStream']['throws']);
+        foreach (self::$invalid_constructor_args['file']['values'] as $argument) {
+            $this->expectException(self::$invalid_constructor_args['file']['throws']);
             new UploadedFile($argument, \UPLOAD_ERR_OK);
         }
     }
@@ -207,10 +207,4 @@ class UploadedFileTest extends TestCase
         }
     }
 
-    
-
-
-    public static function tearDownAfterClass(): void
-    {
-    }
 }
