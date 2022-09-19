@@ -105,7 +105,11 @@ class Stream implements StreamInterface
      * @param string|resource $resource Specifies the file, URL or resource to open (optional)
      * @param string $mode specifies the type of access you require to the stream (optional)
      * @param string $content text content of the stream (optional)
-     * @throws \RuntimeException for invalid sream wapper or if given file does not exists
+     * @throws \RuntimeException 
+     * - for invalid sream wapper 
+     * - if given file does not exists
+     * - if given file is not writable or readable
+     * - if target directory of new file does not exists or not writable
      * @throws \InvalidArgumentException for invalid argument type
      */
     public function __construct(
