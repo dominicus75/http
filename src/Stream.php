@@ -14,57 +14,82 @@ use Psr\Http\Message\StreamInterface;
 class Stream implements StreamInterface
 {
     /**
+     * Reading only modes
      * @see https://www.php.net/manual/en/function.fopen.php
      */
-    private const READABLE = [
+    private const READING = [
         'r'   => true, 
         'rb'  => true, 
-        'rt'  => true, 
-        'r+'  => true, 
-        'r+b' => true, 
-        'r+t' => true,
-        'w+'  => true, 
-        'w+b' => true, 
-        'w+t' => true, 
-        'a+'  => true,
-        'a+b' => true,
-        'a+t' => true, 
-        'x+'  => true, 
-        'x+b' => true,
-        'x+t' => true, 
-        'c+'  => true,
-        'c+b' => true, 
-        'c+t' => true
+        'rt'  => true
     ];
-    
+
     /**
+     * Writing only modes
      * @see https://www.php.net/manual/en/function.fopen.php
      */
-    private const WRITABLE = [
-        'r+'  => true, 
-        'r+b' => true, 
-        'r+t' => true,
+    private const WRITING = [
         'w'   => true, 
         'wb'  => true, 
-        'wt'  => true, 
+        'wt'  => true,
+        'a'   => true, 
+        'ab'  => true, 
+        'at'  => true,
+        'x'   => true, 
+        'xb'  => true, 
+        'xt'  => true,
+        'c'   => true, 
+        'cb'  => true, 
+        'ct'  => true
+    ];
+
+    /**
+     * If file does not exists, fopen() function creates it.
+     * @see https://www.php.net/manual/en/function.fopen.php
+     */
+    private const CREATING = [
         'w+'  => true, 
         'w+b' => true,
         'w+t' => true, 
-        'rw'  => true, 
         'rw+' => true, 
-        'a'   => true, 
         'a+'  => true,
         'a+b' => true,
         'a+t' => true, 
-        'x'   => true,
         'x+'  => true,
         'x+b' => true,
         'x+t' => true, 
-        'c'   => true, 
         'c+'  => true, 
         'c+b' => true, 
         'c+t' => true
     ];
+
+    /**
+     * Extended modes (reading and writing)
+     * @see https://www.php.net/manual/en/function.fopen.php
+     */
+    private const EXTENDED = self::CREATING + [
+        'r+'  => true, 
+        'r+b' => true, 
+        'r+t' => true,
+        'rw'  => true
+    ];
+
+    /**
+     * Modes which allow reading
+     * @see https://www.php.net/manual/en/function.fopen.php
+     */
+    private const READABLE = self::READING + self::EXTENDED;
+
+    /**
+     * Modes which allow writing
+     * @see https://www.php.net/manual/en/function.fopen.php
+     */
+    private const WRITABLE = self::WRITING + self::EXTENDED;
+
+    /**
+     * All of modes
+     * @see https://www.php.net/manual/en/function.fopen.php
+     */
+    private const ALLMODES = self::READING + self::WRITING + self::EXTENDED;
 
     /**
      * @var array List of registered streams available on the running system
@@ -92,17 +117,29 @@ class Stream implements StreamInterface
 
         if (\is_string($resource)) {
             $resource = empty($resource) ? 'php://temp' : $resource;
-            $mode     = !empty($mode) && (isset(self::READABLE[$mode]) || isset(self::WRITABLE[$mode])) ? $mode : 'rw+';
+            $mode     = !empty($mode) && isset(self::ALLMODES[$mode]) ? $mode : 'c+t';
             $wrapper  = $this->getUsedWrapper($resource);
+
             if (empty($wrapper)) {
                 throw new \RuntimeException('Given stream wapper is invalid.');
-            } 
-            if ($wrapper === 'file' && !\file_exists($resource)) {
-                throw new \RuntimeException('Given file does not exists.');
+            } elseif ($wrapper === 'file') {
+                switch (true) {
+                    case (!isset(self::CREATING[$mode]) && !\file_exists($resource)):
+                        throw new \RuntimeException('Given file does not exists.');
+                    case (isset(self::READABLE[$mode]) && \file_exists($resource) && !\is_readable($resource)):
+                        throw new \RuntimeException('Given file is not readable.');
+                    case (isset(self::WRITABLE[$mode]) && \file_exists($resource) && !\is_writable($resource)):
+                        throw new \RuntimeException('Given file is not writable.');
+                    case (isset(self::CREATING[$mode]) && !\file_exists($resource) && !\file_exists(\dirname($resource))):
+                        throw new \RuntimeException('Target directory does not exists.');
+                    case (isset(self::CREATING[$mode]) && !\file_exists($resource) && !\is_writable(\dirname($resource))):
+                        throw new \RuntimeException('Target directory is not writable.');
+                }
             }
+
             if (false === $this->stream = \fopen($resource, $mode)) { 
                 throw new \RuntimeException('Unable to open the stream'); 
-            }
+            }   
         } elseif (\is_resource($resource)) {
             $this->stream = $resource;
         } else {
@@ -260,7 +297,7 @@ class Stream implements StreamInterface
     {
         if (isset($this->stream)) {
             $mode = $this->getMetadata('mode');
-            return $mode ? isset(self::WRITABLE[$mode]) : false;
+            return $mode ? (isset(self::WRITABLE[$mode])) : false;
         } else { return false; }
     }
 
@@ -274,9 +311,9 @@ class Stream implements StreamInterface
     public function write($string): int
     {
         if (!isset($this->stream)) { throw new \RuntimeException('Stream is detached'); }
-        if (!$this->isWritable()) { throw new \RuntimeException('Stream is not writable'); }
+        if (!$this->isWritable())  { throw new \RuntimeException('Stream is not writable'); }
         $result = \fwrite($this->stream, $string);
-        if ($result === false) { throw new \RuntimeException('Unable to write to stream'); }
+        if ($result === false)     { throw new \RuntimeException('Unable to write to stream'); }
         return $result;
     }
 
@@ -289,7 +326,7 @@ class Stream implements StreamInterface
     {
         if (isset($this->stream)) {
             $mode = $this->getMetadata('mode');
-            return $mode ? isset(self::READABLE[$mode]) : false;
+            return $mode ? (isset(self::READABLE[$mode])) : false;
         } else { return false; }
     }
 
@@ -325,9 +362,9 @@ class Stream implements StreamInterface
     public function getContents(): string
     {
         if (!isset($this->stream)) { throw new \RuntimeException('Stream is detached'); }
-        if (!$this->isReadable()) { throw new \RuntimeException('Stream is not readable'); }
+        if (!$this->isReadable())  { throw new \RuntimeException('Stream is not readable'); }
         $result = \stream_get_contents($this->stream);
-        if (false === $result) { throw new \RuntimeException('Unable to read from stream'); }
+        if (false === $result)     { throw new \RuntimeException('Unable to read from stream'); }
         return $result;
     }
 

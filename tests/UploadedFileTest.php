@@ -131,21 +131,17 @@ class UploadedFileTest extends TestCase
                 'throws'  => self::$throws['runtime'],
                 'message' => 'It is not a valid uploaded file'
             ],
-            'stream_is_unopenable' => [
+            'invalid_stream' => [
                 'values'  => [
                     'php://stream',
                     'telnet://temp',
                     'file://memory'
                 ],
                 'throws'  => self::$throws['runtime'],
-                'message' => 'Unable to open the stream. Given resource does not exists.'
+                'message' => 'It is not a valid uploaded file'
             ],
 
         ];
-
-       /* $fh = fopen(self::$tmp_dir.'numbers.txt', "w");
-        fwrite($fh, "12345678");
-        fclose($fh);*/
     }
 
     public function testInvalidFileArgThrowsExceptions()
@@ -205,6 +201,22 @@ class UploadedFileTest extends TestCase
             $this->expectExceptionMessage(self::$constructor_exceptions['file_is_not_uploaded']['message']);
             new UploadedFile($argument, \UPLOAD_ERR_OK);
         }
+    }
+
+    public function testIfSteamIsInvalidConstructorThrowsExceptions()
+    {
+        foreach (self::$constructor_exceptions['invalid_stream']['values'] as $argument) {
+            $this->expectException(self::$constructor_exceptions['invalid_stream']['throws']);
+            $this->expectExceptionMessage(self::$constructor_exceptions['invalid_stream']['message']);
+            new UploadedFile($argument, \UPLOAD_ERR_OK);
+        }
+    }
+
+    public function testValidClientFilename(): void
+    {
+        \chmod(self::$tst_dir.'lorem.txt', 0777);
+        $file = new UploadedFile(new Stream(self::$tst_dir.'lorem.txt'), UPLOAD_ERR_OK);
+        $this->assertSame(self::$tst_dir.'lorem.txt', $file->getClientFilename());
     }
 
 }

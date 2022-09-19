@@ -107,7 +107,8 @@ class UploadedFile implements UploadedFileInterface
            
         $realFileSize          = $this->stream->getSize();
         $this->size            = ($realFileSize != $size) || \is_null($size) ? $realFileSize : $size;
-        $this->clientFilename  = \preg_replace("/[^\w\.\-]/i", "", $name);
+        $name                  = \is_null($name) ? $this->stream->getMetadata('uri') : $name;
+        $this->clientFilename  = \preg_replace("/[^\w\.\-\/]/i", "", $name);
         $this->clientMediaType = \mime_content_type($this->tmpName);    
     }
 
@@ -146,12 +147,7 @@ class UploadedFile implements UploadedFileInterface
             throw new \RuntimeException("Uploaded file has already been moved to a new location"); 
         }
 
-        if ($this->stream->isValidWrapper($targetPath)) {
-            try {
-                $targetStream = new Stream(resource: $targetPath);
-                $this->moved  = ($targetStream->write((string) $this->stream) === $this->stream->getSize());
-            } catch (\RuntimeException $e) { throw $e; }
-        } else {
+        if ($this->stream->getUsedWrapper($targetPath) === 'file') {
             $target_dir = \dirname($targetPath);
             if (\is_writable($target_dir)) {
                 if (\file_exists($targetPath)) {
@@ -163,6 +159,11 @@ class UploadedFile implements UploadedFileInterface
             } else {
                 throw new \RuntimeException($target_dir.' does not exists or not writable'); 
             }
+        } else {
+            try {
+                $targetStream = new Stream(resource: $targetPath);
+                $this->moved  = ($targetStream->write((string) $this->stream) === $this->stream->getSize());
+            } catch (\RuntimeException $e) { throw $e; }
         }
 
         if (!$this->moved) { 

@@ -14,8 +14,54 @@ use PHPUnit\Framework\TestCase;
  */
 class StreamTest extends TestCase
 {
-    private static string $txtfile = __DIR__.DIRECTORY_SEPARATOR.'lorem.txt';
+    private static string $test_dir = __DIR__.DIRECTORY_SEPARATOR;
+    private static string $txt_file = __DIR__.DIRECTORY_SEPARATOR.'lorem.txt';
+    private static string $png_file = __DIR__.DIRECTORY_SEPARATOR.'tux.png';
+    private static string $csv_file = __DIR__.DIRECTORY_SEPARATOR.'random.csv';
+    private static array $files = [
+        'txt' => __DIR__.DIRECTORY_SEPARATOR.'lorem.txt',
+        'png' => __DIR__.DIRECTORY_SEPARATOR.'tux.png',
+        'csv' => __DIR__.DIRECTORY_SEPARATOR.'random.csv'
+    ];
+    private static array $dirs = [
+        __DIR__.DIRECTORY_SEPARATOR.'target',
+        __DIR__.DIRECTORY_SEPARATOR.'upload',
+        __DIR__.DIRECTORY_SEPARATOR.'directory',
+        __DIR__.DIRECTORY_SEPARATOR.'foo'
+    ];
     private static string $empty = '';
+
+    protected function setUp(): void
+    {
+        foreach (self::$files as $path) {
+            \chmod($path, 0777);
+        }
+    }
+
+    protected function tearDown(): void
+    {
+        foreach (self::$dirs as $dir) {
+            if (\file_exists($dir)) { 
+                if (\is_dir($dir)) {
+                    \rmdir($dir); 
+                } else { \unlink($dir); }
+            }
+        }
+    }
+
+    public static function tearDownAfterClass(): void
+    {
+        foreach (self::$files as $path) {
+            \chmod($path, 0777);
+        }
+        foreach (self::$dirs as $dir) {
+            if (\file_exists($dir)) { 
+                if (\is_dir($dir)) {
+                    \rmdir($dir); 
+                } else { \unlink($dir); }
+            }
+        }
+    }
 
     public function getInvalidConstructorArgs(string $type): array
     {
@@ -41,7 +87,7 @@ class StreamTest extends TestCase
                 'throws'  => \RuntimeException::class,
                 'message' => 'Given stream wapper is invalid.'
             ],
-            'not_found'   => [
+            'file_not_found'   => [
                 'values'  => [
                     '/tmp/something.txt',
                     '/etc/something.csv',
@@ -49,6 +95,26 @@ class StreamTest extends TestCase
                 ],
                 'throws'  => \RuntimeException::class,
                 'message' => 'Given file does not exists.'
+            ],           
+            'file_not_readable'   => [
+                'values'  => self::$files,
+                'throws'  => \RuntimeException::class,
+                'message' => 'Given file is not readable.'
+            ],           
+            'file_not_writable'   => [
+                'values'  => self::$files,
+                'throws'  => \RuntimeException::class,
+                'message' => 'Given file is not writable.'
+            ],
+            'target_dir_not_found'   => [
+                'values'  => self::$dirs,
+                'throws'  => \RuntimeException::class,
+                'message' => 'Target directory does not exists.'
+            ],
+            'target_dir_not_writable'   => [
+                'values'  => self::$dirs,
+                'throws'  => \RuntimeException::class,
+                'message' => 'Target directory is not writable.'
             ]
         ];
         return $args[$type];
@@ -59,13 +125,13 @@ class StreamTest extends TestCase
         $args = [
             'resource'    => [
                 'values'  => [
-                    \fopen(self::$txtfile, 'r+')
+                    \fopen(self::$txt_file, 'r+')
                 ],
                 'results' => [
                     [
-                        '__toString' => \fread(\fopen(self::$txtfile, 'r+'), \filesize(self::$txtfile)),
-                        'uri'        => self::$txtfile,
-                        'size'       => \filesize(self::$txtfile)    
+                        '__toString' => \fread(\fopen(self::$txt_file, 'r+'), \filesize(self::$txt_file)),
+                        'uri'        => self::$txt_file,
+                        'size'       => \filesize(self::$txt_file)    
                     ]
                 ]
             ],
@@ -106,13 +172,56 @@ class StreamTest extends TestCase
         }
     }
 
-    public function testIfGivenFileDoesNotExistsConstructorThrowsExceptions()
+    public function testIfGivenOnlyReadableFileDoesNotExistsConstructorThrowsExceptions()
     {
-        $not_found = $this->getInvalidConstructorArgs('not_found');
-        foreach ($not_found['values'] as $value) {
-            $this->expectException($not_found['throws']);
-            $this->expectExceptionMessage($not_found['message']);
+        $file_not_found = $this->getInvalidConstructorArgs('file_not_found');
+        foreach ($file_not_found['values'] as $value) {
+            $this->expectException($file_not_found['throws']);
+            $this->expectExceptionMessage($file_not_found['message']);
+            new Stream($value, 'rb');
+        }
+    }
+
+    public function testIfGivenFileNotReadableConstructorThrowsExceptions()
+    {
+        $file_not_readable = $this->getInvalidConstructorArgs('file_not_readable');
+        foreach ($file_not_readable['values'] as $value) {
+            \chmod($value, 0);
+            $this->expectException($file_not_readable['throws']);
+            $this->expectExceptionMessage($file_not_readable['message']);
+            new Stream($value, 'rb');
+        }
+    }
+
+    public function testIfGivenFileNotWritableConstructorThrowsExceptions()
+    {
+        $file_not_writable = $this->getInvalidConstructorArgs('file_not_writable');
+        foreach ($file_not_writable['values'] as $value) {
+            \chmod($value, 0444);
+            $this->expectException($file_not_writable['throws']);
+            $this->expectExceptionMessage($file_not_writable['message']);
             new Stream($value);
+        }
+    }
+
+    public function testIfGivenFileAndTargetDirNotExistsConstructorThrowsExceptions()
+    {
+        $target_dir_not_found = $this->getInvalidConstructorArgs('target_dir_not_found');
+        foreach ($target_dir_not_found['values'] as $value) {
+            $this->expectException($target_dir_not_found['throws']);
+            $this->expectExceptionMessage($target_dir_not_found['message']);
+            new Stream($value.\DIRECTORY_SEPARATOR.'foo.txt');
+        }
+    }
+
+    public function testIfTargetDirExistsButNotWritableConstructorThrowsExceptions()
+    {
+        $target_dir_not_writable = $this->getInvalidConstructorArgs('target_dir_not_writable');
+        foreach ($target_dir_not_writable['values'] as $value) {
+            \mkdir($value, 0444);
+            $this->expectException($target_dir_not_writable['throws']);
+            $this->expectExceptionMessage($target_dir_not_writable['message']);
+            new Stream($value.\DIRECTORY_SEPARATOR.'foo.txt');
         }
     }
 
