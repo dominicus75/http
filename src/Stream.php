@@ -127,6 +127,7 @@ class Stream implements StreamInterface
             if (empty($wrapper)) {
                 throw new \RuntimeException('Given stream wapper is invalid.');
             } elseif ($wrapper === 'file') {
+                $directory = \dirname($resource);
                 switch (true) {
                     case (!isset(self::CREATING[$mode]) && !\file_exists($resource)):
                         throw new \RuntimeException('Given file does not exists.');
@@ -134,9 +135,11 @@ class Stream implements StreamInterface
                         throw new \RuntimeException('Given file is not readable.');
                     case (isset(self::WRITABLE[$mode]) && \file_exists($resource) && !\is_writable($resource)):
                         throw new \RuntimeException('Given file is not writable.');
-                    case (isset(self::CREATING[$mode]) && !\file_exists($resource) && !\file_exists(\dirname($resource))):
+                    case (isset(self::CREATING[$mode]) && !\file_exists($resource) && !\file_exists($directory)):
                         throw new \RuntimeException('Target directory does not exists.');
-                    case (isset(self::CREATING[$mode]) && !\file_exists($resource) && !\is_writable(\dirname($resource))):
+                    case (isset(self::CREATING[$mode]) && !\file_exists($resource) && \file_exists($directory) && !\is_dir($directory)):
+                        throw new \RuntimeException('Target directory is not a directory.');
+                    case (isset(self::CREATING[$mode]) && !\file_exists($resource) && !\is_writable($directory)):
                         throw new \RuntimeException('Target directory is not writable.');
                 }
             }

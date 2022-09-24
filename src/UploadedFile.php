@@ -98,10 +98,12 @@ class UploadedFile implements UploadedFileInterface
         } elseif (\is_string($file)) {
             if (!\is_uploaded_file($file)) {
                 throw new \RuntimeException('It is not a valid uploaded file');
+            } elseif (\is_executable($file)) {
+                throw new \RuntimeException('It is an executable file');
             }
             $this->tmpName = $file;
             try {
-                $this->stream = new Stream(resource: $this->tmpName);           
+                $this->stream = new Stream($this->tmpName);           
             } catch (\RuntimeException $e) { throw $e; }
         }
            
@@ -149,20 +151,24 @@ class UploadedFile implements UploadedFileInterface
 
         if ($this->stream->getUsedWrapper($targetPath) === 'file') {
             $target_dir = \dirname($targetPath);
-            if (\is_writable($target_dir)) {
-                if (\file_exists($targetPath)) {
-                    throw new \RuntimeException($targetPath.' file is already exists'); 
-                }
-                $this->moved = (\PHP_SAPI === 'cli')
-                    ? \rename($this->tmpName, $targetPath)
-                    : \move_uploaded_file($this->tmpName, $targetPath);                
-            } else {
-                throw new \RuntimeException($target_dir.' does not exists or not writable'); 
+            switch (true) {
+                case (\file_exists($targetPath)):
+                    throw new \RuntimeException('Target file is already exists'); 
+                case (!\file_exists($target_dir)):
+                    throw new \RuntimeException('Target directory does not exists.');
+                case (\file_exists($target_dir) && !\is_dir($target_dir)):
+                    throw new \RuntimeException('Target directory is not a directory.');
+                case (\file_exists($target_dir) && !\is_writable($target_dir)):
+                    throw new \RuntimeException('Target directory is not writable.');
             }
+            $this->moved = (\PHP_SAPI === 'cli'
+                ? \rename($this->tmpName, $targetPath)
+                : \move_uploaded_file($this->tmpName, $targetPath)
+            );                
         } else {
             try {
-                $targetStream = new Stream(resource: $targetPath);
-                $this->moved  = ($targetStream->write((string) $this->stream) === $this->stream->getSize());
+                $targetStream = new Stream($targetPath, 'c+t', $this->stream);
+                $this->moved  = ($targetStream->getSize() === $this->stream->getSize());
             } catch (\RuntimeException $e) { throw $e; }
         }
 
