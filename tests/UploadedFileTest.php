@@ -2,9 +2,10 @@
 
 namespace Dominicus75\Psr7\Tests;
 
-use Psr\Http\Message\{UploadedFileInterface, StreamInterface};
 use Dominicus75\Psr7\{Stream, UploadedFile};
+use org\bovigo\vfs\vfsStream;
 use PHPUnit\Framework\TestCase;
+use Psr\Http\Message\{UploadedFileInterface, StreamInterface};
 
 /**
  * @covers Dominicus75\Psr7\Stream
@@ -29,6 +30,7 @@ class UploadedFileTest extends TestCase
 
     public static function setUpBeforeClass(): void
     {
+        //fwrite(STDOUT, var_dump(self)."\n");
         self::$tmp_dir = \sys_get_temp_dir().DIRECTORY_SEPARATOR;
         if (!\is_dir(self::$tmp_dir.DIRECTORY_SEPARATOR.'upload')) { 
             \mkdir(self::$tmp_dir.DIRECTORY_SEPARATOR.'upload'); 
@@ -142,6 +144,11 @@ class UploadedFileTest extends TestCase
             ],
 
         ];
+    }
+
+    public function uploadViaHttpPost(): void
+    {
+
     }
 
     public function testInvalidFileArgThrowsExceptions()
