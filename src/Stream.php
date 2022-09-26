@@ -144,9 +144,9 @@ class Stream implements StreamInterface
                 }
             }
 
-            if (false === $this->stream = \fopen($resource, $mode)) { 
-                throw new \RuntimeException('Unable to open the stream'); 
-            }   
+            if (false === $this->stream = @\fopen($resource, $mode)) { 
+                throw new \RuntimeException('Unable to open the stream.'); 
+            } 
         } elseif (\is_resource($resource)) {
             $this->stream = $resource;
         } else {

@@ -3,7 +3,7 @@
 namespace Dominicus75\Psr7\Tests;
 
 use Dominicus75\Psr7\{Stream, UploadedFile};
-use org\bovigo\vfs\vfsStream;
+use org\bovigo\vfs\{vfsStream, vfsStreamFile};
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\{UploadedFileInterface, StreamInterface};
 
@@ -30,6 +30,7 @@ class UploadedFileTest extends TestCase
 
     public static function setUpBeforeClass(): void
     {
+
         //fwrite(STDOUT, var_dump(self)."\n");
         self::$tmp_dir = \sys_get_temp_dir().DIRECTORY_SEPARATOR;
         if (!\is_dir(self::$tmp_dir.DIRECTORY_SEPARATOR.'upload')) { 
@@ -140,16 +141,19 @@ class UploadedFileTest extends TestCase
                     'file://memory'
                 ],
                 'throws'  => self::$throws['runtime'],
-                'message' => 'It is not a valid uploaded file'
+                'message' => 'Unable to open the stream.'
             ],
 
         ];
     }
 
-    public function uploadViaHttpPost(): void
-    {
+    protected function createUploadFile()
+	{
+		$vfs = vfsStream::setup(self::$upl_dir, 777, ['testFile' => self::$tst_dir.'random.csv']);
+        \fwrite(STDOUT, var_dump($vfs). "\n");
 
-    }
+	    return new UploadedFile($vfs->url(), 0);
+	}
 
     public function testInvalidFileArgThrowsExceptions()
     {
@@ -217,13 +221,6 @@ class UploadedFileTest extends TestCase
             $this->expectExceptionMessage(self::$constructor_exceptions['invalid_stream']['message']);
             new UploadedFile($argument, \UPLOAD_ERR_OK);
         }
-    }
-
-    public function testValidClientFilename(): void
-    {
-        \chmod(self::$tst_dir.'lorem.txt', 0777);
-        $file = new UploadedFile(new Stream(self::$tst_dir.'lorem.txt'), UPLOAD_ERR_OK);
-        $this->assertSame(self::$tst_dir.'lorem.txt', $file->getClientFilename());
     }
 
 }

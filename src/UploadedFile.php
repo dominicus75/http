@@ -96,15 +96,16 @@ class UploadedFile implements UploadedFileInterface
             $this->stream  = $file;
             $this->tmpName = $this->stream->getMetadata('uri');
         } elseif (\is_string($file)) {
-            if (!\is_uploaded_file($file)) {
-                throw new \RuntimeException('It is not a valid uploaded file');
-            } elseif (\is_executable($file)) {
-                throw new \RuntimeException('It is an executable file');
-            }
             $this->tmpName = $file;
             try {
                 $this->stream = new Stream($this->tmpName);           
             } catch (\RuntimeException $e) { throw $e; }
+        }
+
+        if (!\is_uploaded_file($this->tmpName)) {
+            throw new \RuntimeException('It is not a valid uploaded file');
+        } elseif (\is_executable($this->tmpName)) {
+            throw new \RuntimeException('It is an executable file');
         }
            
         $realFileSize          = $this->stream->getSize();
