@@ -25,7 +25,6 @@ class UploadedFileTest extends TestCase
     private static array $invalid_constructor_args;
     private static array $invalid_error_codes;
     private static array $constructor_exceptions;
-    private static array $invalid_target_paths;
     private static array $moveTo_exceptions;
 
     public static function setUpBeforeClass(): void
@@ -146,14 +145,6 @@ class UploadedFileTest extends TestCase
 
         ];
     }
-
-    protected function createUploadFile()
-	{
-		$vfs = vfsStream::setup(self::$upl_dir, 777, ['testFile' => self::$tst_dir.'random.csv']);
-        \fwrite(STDOUT, var_dump($vfs). "\n");
-
-	    return new UploadedFile($vfs->url(), 0);
-	}
 
     public function testInvalidFileArgThrowsExceptions()
     {
