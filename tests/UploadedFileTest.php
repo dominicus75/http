@@ -3,7 +3,6 @@
 namespace Dominicus75\Psr7\Tests;
 
 use Dominicus75\Psr7\{Stream, UploadedFile};
-use org\bovigo\vfs\{vfsStream, vfsStreamFile};
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\{UploadedFileInterface, StreamInterface};
 
@@ -140,7 +139,7 @@ class UploadedFileTest extends TestCase
                     'file://memory'
                 ],
                 'throws'  => self::$throws['runtime'],
-                'message' => 'Unable to open the stream.'
+                'message' => 'Invalid filename. Unable to open the stream.'
             ],
 
         ];
