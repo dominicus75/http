@@ -14,7 +14,7 @@ class UploadedFile implements UploadedFileInterface
      * of the file array that is created during the file upload by PHP.
      * The error might be found in $_FILES['userfile']['error']. 
      */
-    private const ERRORS = [
+    protected const ERRORS = [
         \UPLOAD_ERR_OK         => 'There is no error, the file uploaded with success',
         \UPLOAD_ERR_INI_SIZE   => 'The uploaded file exceeds the upload_max_filesize directive in php.ini',
         \UPLOAD_ERR_FORM_SIZE  => 'The uploaded file exceeds the MAX_FILE_SIZE directive that was specified in the HTML form',
@@ -29,41 +29,41 @@ class UploadedFile implements UploadedFileInterface
      * @var string The temporary filename of the file in which the uploaded file 
      * was stored on the server ($_FILES['userfile']['tmp_name']).
      */
-    private string $tmpName;
+    protected string $tmpName;
 
     /**
      * @var StreamInterface Stream representation of the uploaded file
      */
-    private StreamInterface $stream;
+    protected StreamInterface $stream;
 
     /** 
      * @var int|null The file size in bytes or null if unknown
      * ($_FILES['userfile']['size']).
      */
-    private ?int $size = null;
+    protected ?int $size = null;
 
     /** 
      * @var int One of PHP's UPLOAD_ERR_XXX constants
      * ($_FILES['userfile']['error']).
      */
-    private int $error = \UPLOAD_ERR_OK;
+    protected int $error = \UPLOAD_ERR_OK;
 
     /** 
      * @var string|null the original filename sent by the client
      * ($_FILES['userfile']['name']).
      */
-    private ?string $clientFilename;
+    protected ?string $clientFilename;
 
     /** 
      * @var string|null the media type sent by the client
      * ($_FILES['userfile']['type']). For example: "image/gif"
      */
-    private ?string $clientMediaType;
+    protected ?string $clientMediaType;
 
     /** 
      * @var bool True, if the uploaded file was moved to a new location
      */
-    private bool $moved = false;
+    protected bool $moved = false;
 
     /**
      * The constructor method. Creates a new UploadedFile instance.
@@ -177,7 +177,7 @@ class UploadedFile implements UploadedFileInterface
             throw new \RuntimeException('Uploaded file could not be moved to '.$targetPath); 
         } else {
             $this->stream->close();
-            \unlink($this->tmpName);
+            if (\file_exists($this->tmpName)) { \unlink($this->tmpName); }
         }
     }
     
