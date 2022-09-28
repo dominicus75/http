@@ -230,7 +230,7 @@ class UploadedFileTest extends TestCase
     {
         foreach (self::$invalid_constructor_args['size']['values'] as $argument) {
             $this->expectException(self::$invalid_constructor_args['size']['throws']);
-            new UploadedFile(self::$stream, \UPLOAD_ERR_OK, $argument);
+            new UploadedFile(file: self::$stream, error: \UPLOAD_ERR_OK, size: $argument);
         }
     }
 
@@ -238,7 +238,7 @@ class UploadedFileTest extends TestCase
     {
         foreach (self::$invalid_constructor_args['name']['values'] as $argument) {
             $this->expectException(self::$invalid_constructor_args['name']['throws']);
-            new UploadedFile(self::$stream, \UPLOAD_ERR_OK, self::$stream->getSize(), $argument);
+            new UploadedFile(self::$stream, \UPLOAD_ERR_OK, $argument, self::$stream->getSize());
         }
     }
 

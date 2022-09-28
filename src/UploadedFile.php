@@ -80,8 +80,8 @@ class UploadedFile implements UploadedFileInterface
     public function __construct(
         StreamInterface|string $file,
         int $error,
-        ?int $size    = null,
-        ?string $name = null
+        ?string $name = null,
+        ?int $size    = null
     ) {
         if ($error != \UPLOAD_ERR_OK) {
             if (!isset(self::ERRORS[$error])) {
@@ -108,10 +108,9 @@ class UploadedFile implements UploadedFileInterface
             throw new \RuntimeException('It is an executable file');
         }
            
-        $realFileSize          = $this->stream->getSize();
-        $this->size            = ($realFileSize != $size) || \is_null($size) ? $realFileSize : $size;
-        $name                  = \is_null($name) ? $this->stream->getMetadata('uri') : $name;
+        $name                  = \is_null($name) ? \basename($this->stream->getMetadata('uri')) : $name;
         $this->clientFilename  = \preg_replace("/[^\w\.\-\/]/i", "", $name);
+        $this->size            = \is_null($size) ? $this->stream->getSize() : $size;
         $this->clientMediaType = \mime_content_type($this->tmpName);    
     }
 
