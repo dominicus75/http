@@ -108,8 +108,8 @@ class UploadedFile implements UploadedFileInterface
             throw new \RuntimeException('It is an executable file');
         }
            
-        $name                  = \is_null($name) ? \basename($this->stream->getMetadata('uri')) : $name;
-        $this->clientFilename  = \preg_replace("/[^\w\.\-\/]/i", "", $name);
+        $name                  = \is_null($name) ? \basename($this->tmpName) : $name;
+        $this->clientFilename  = \preg_replace("/[^\w\.\-]/i", "", $name);
         $this->size            = \is_null($size) ? $this->stream->getSize() : $size;
         $this->clientMediaType = \mime_content_type($this->tmpName);    
     }
