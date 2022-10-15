@@ -154,7 +154,9 @@ class Stream implements StreamInterface
             throw new \InvalidArgumentException('$resource must be a string or resource.');
         }
 
-        try { $this->write($content); } catch (\RuntimeException $e) { throw $e; }
+        if (!empty($content)) {
+            try { $this->write($content); } catch (\RuntimeException $e) { throw $e; }
+        }
     }
 
     /**
@@ -304,8 +306,7 @@ class Stream implements StreamInterface
     public function isWritable(): bool
     {
         if (isset($this->stream)) {
-            $mode = $this->getMetadata('mode');
-            return $mode ? (isset(self::WRITABLE[$mode])) : false;
+            return isset(self::WRITABLE[$this->getMetadata('mode')]);
         } else { return false; }
     }
 
@@ -320,8 +321,9 @@ class Stream implements StreamInterface
     {
         if (!isset($this->stream)) { throw new \RuntimeException('Stream is detached'); }
         if (!$this->isWritable())  { throw new \RuntimeException('Stream is not writable'); }
-        $result = \fwrite($this->stream, $string);
-        if ($result === false)     { throw new \RuntimeException('Unable to write to stream'); }
+        if (false === $result = @\fwrite($this->stream, $string)) { 
+            throw new \RuntimeException('Unable to write to stream'); 
+        }
         return $result;
     }
 
