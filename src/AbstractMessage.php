@@ -9,10 +9,6 @@ use Psr\Http\Message\{MessageInterface, StreamInterface};
  * from a server to a client. This interface defines the methods common to
  * each.
  *
- * Messages are considered immutable; all methods that might change state MUST
- * be implemented such that they retain the internal state of the current
- * message and return an instance that contains the changed state.
- *
  * @link http://www.ietf.org/rfc/rfc7230.txt
  * @link http://www.ietf.org/rfc/rfc7231.txt
  * @link https://www.rfc-editor.org/rfc/rfc9110.html
@@ -151,8 +147,8 @@ abstract class AbstractMessage implements MessageInterface
      *
      * @param string $name Case-insensitive header field name.
      * @return string[] An array of string values as provided for the given
-     *    header. If the header does not appear in the message, this method MUST
-     *    return an empty array.
+     *    header. If the header does not appear in the message, this method 
+     *    returns an empty array.
      */
     public function getHeader($name): array
     {
@@ -166,12 +162,13 @@ abstract class AbstractMessage implements MessageInterface
      * @param string $name Case-insensitive header field name.
      * @return string A string of values as provided for the given header
      *    concatenated together using a comma. If the header does not appear in
-     *    the message, this method MUST return an empty string.
+     *    the message, this method returns an empty string.
      */
     public function getHeaderLine($name): string
     {
-        $name = $this->normalizeHeaderdName($name);
-        return $this->hasHeader($name) ? \implode(',', $this->headers[$name]) : '';
+        $name   = $this->normalizeHeaderdName($name);
+        $result = $this->getHeader($name);
+        return !empty($result) ? \implode(',', $result) : '';
     }
 
     /**
@@ -222,7 +219,7 @@ abstract class AbstractMessage implements MessageInterface
     {
         $clone = clone $this;
         $name  = $this->normalizeHeaderdName($name);
-        if ($clone->hasHeader($name)) { unset($clone->headers[$name]); }
+        if ($clone->hasHeader($name)) { $clone->headers[$name] = null; }
         return $clone;
     }
 
