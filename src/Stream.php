@@ -110,6 +110,7 @@ class Stream implements StreamInterface
      * - if given file does not exists
      * - if given file is not writable or readable
      * - if target directory of new file does not exists or not writable
+     * - if file writing fails
      * @throws \InvalidArgumentException for invalid argument type
      */
     public function __construct(
@@ -153,7 +154,7 @@ class Stream implements StreamInterface
             throw new \InvalidArgumentException('$resource must be a string or resource.');
         }
 
-        if (!empty($content)) { $this->write($content); }
+        try { $this->write($content); } catch (\RuntimeException $e) { throw $e; }
     }
 
     /**

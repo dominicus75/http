@@ -49,33 +49,9 @@ abstract class AbstractMessage implements MessageInterface
     /**
      * Describes a data stream. Typically, an instance will wrap a PHP stream
      *
-     * @var StreamInterface|null
+     * @var StreamInterface
      */
-    protected StreamInterface|null $body;
-
-    /**
-     * The protected constructor method.
-     *
-     * @param string $version HTTP protocol version as string
-     * @param string|StreamInterface|null $body HTTP message body
-     * @return self
-     * @throws \InvalidArgumentException
-     */
-    protected function __construct(
-        string $version = '1.1',
-        array  $headers = [],
-        string|StreamInterface|null $body = null
-    ) {
-        try {
-            $this->setProtocolVersion($version);
-            $this->setHeaders($headers);
-            if($body instanceof StreamInterface || \is_null($body)) {
-                $this->body = $body;
-            } elseif(\is_string($body)) {
-                $this->body = new Stream(content: $body);
-            }
-        } catch (\InvalidArgumentException $e) { throw $e; }
-    }
+    protected StreamInterface $body;
 
     ##########################
     # PSR-7 Public interface #

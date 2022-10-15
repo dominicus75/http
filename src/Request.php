@@ -10,16 +10,6 @@ use Psr\Http\Message\{RequestInterface, StreamInterface, UriInterface};
  */
 class Request extends AbstractMessage implements RequestInterface
 {
-
-    /**
-     * The request target, usually a URL, or the absolute path of the protocol, port,
-     * and domain are usually characterized by the request context. The format of this
-     * request target varies between different HTTP methods. 
-     *
-     * @var string
-     */
-    protected string $requestTarget;
-
     /**
      * The request method
      *
@@ -35,27 +25,50 @@ class Request extends AbstractMessage implements RequestInterface
     protected UriInterface $uri;
 
     /**
+     * The request target, usually a URL, or the absolute path of the protocol, port,
+     * and domain are usually characterized by the request context. The format of this
+     * request target varies between different HTTP methods. 
+     *
+     * @var string
+     */
+    protected string $requestTarget;
+
+    /**
      * The constructor method. Creates a new Request instance.
      *
-     * @param string $version the HTTP protocol version as string
      * @param string $method the HTTP method name
-     * @param array $headers the HTTP headers
      * @param string|UriInterface|null|null $uri the requested URI
-     * @param string|StreamInterface|null|null $body the request body
+     * @param string $version the HTTP protocol version as string
+     * @param array $headers the HTTP headers
+     * @param string|StreamInterface $body the request body
      * @return self
      * @throws \InvalidArgumentException if
-     *  - HTTP protocol $version is not valid
-     *  - $method is not valid HTTP method,
-     *  - a header name is not valid.
+     *  - if $method is not a valid HTTP method,
+     *  - if $uri string is invalid
+     *  - if HTTP protocol $version is not valid
+     *  - if a header name is not valid
+     *  - if writing of body to stream fails
      */
     public function __construct(
+        string $method,
+        string|UriInterface $uri,
         string $version = '1.1',
         array  $headers = [],
-        string|StreamInterface|null $body = null,
-        string|UriInterface|null $uri = null,
-        string $method  = ''
+        string|StreamInterface $body = ''
     ) {
         try {
+            $this->setMethod($method);
+
+            if ($uri instanceof UriInterface) {
+                $this->uri = $uri;
+            } else {
+                try {
+                    $this->uri = new Uri($uri);
+                } catch (\InvalidArgumentException $e) { throw $e; }
+            }
+
+            $this->setProtocolVersion($version);
+    
             $this->headers['A-IM']                           = null;
             $this->headers['Accept']                         = null;
             $this->headers['Accept-Charset']                 = null;
@@ -89,15 +102,19 @@ class Request extends AbstractMessage implements RequestInterface
             $this->headers['X-Forwarded-Proto']              = null;
             $this->headers['X-Requested-With']               = null;
             $this->headers['X-Csrf-Token']                   = null;   
-            parent::__construct($version, $headers, $body);
-            $this->setMethod($method);
-            if ($uri instanceof UriInterface) {
-                $this->uri = $uri;
-            } else {
+
+            $this->setHeaders($headers);
+            
+            if($body instanceof StreamInterface) {
+                $this->body = $body;
+            } elseif(\is_string($body)) {
                 try {
-                    $this->uri = new Uri($uri);
-                } catch (\InvalidArgumentException $e) { throw $e; }
+                    $this->body = new Stream(content: $body);
+                } catch (\RuntimeException $e) {
+                    throw new \InvalidArgumentException($e->getMessage());
+                }
             }
+
             $this->setRequestTarget();
         } catch (\InvalidArgumentException $e) { throw $e; }
     }
