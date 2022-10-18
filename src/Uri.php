@@ -14,7 +14,7 @@ class Uri implements UriInterface
     /**
      * @var array The enabled schemes and their ports.
      */
-    private static $schemes = [
+    public static $schemes = [
         80  => 'http',
         443 => 'https'
     ];
@@ -32,29 +32,49 @@ class Uri implements UriInterface
      * A subset of the reserved characters is used as delimiters of the generic URI components
      * @see https://www.rfc-editor.org/rfc/rfc3986.html#section-2.2
      */
-    private const GENDELIM = '\:\/\?#\[\]@';
+    public const GENDELIM = '\:\/\?#\[\]@';
 
     /**
      * @var string sub-delimiter characters according to standard STD 66 (RFC 3986)
      * A subset of the reserved characters is used as subcomponent delimiters within the component
      * @see https://www.rfc-editor.org/rfc/rfc3986.html#section-2.2
      */
-    private const SUBDELIM = '!\$&\'\(\)\*\+,;=';
+    public const SUBDELIM = '!\$&\'\(\)\*\+,;=';
     
-    private const BASECHAR = self::UNRESERV.self::SUBDELIM.'%';
+    /** @var string Pattern of basic characters */
+    public const BASECHAR = self::UNRESERV.self::SUBDELIM.'%';
 
-    private const HEX = "A-Fa-f0-9";
-    private const PCE = '%['.self::HEX.']{2}';
-    private const IP4 = "[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}";
-    private const IP6 = "(\[[".self::HEX."\:]{3,39}\])";
-    private const REG = '(['.self::BASECHAR.']+|'.self::PCE.')';
-    private const USR = "([".self::BASECHAR."\:]+|".self::PCE.")";
-    private const HST = "(".self::IP4."|".self::IP6."|".self::REG."+)";
-    private const PTH = "([".self::BASECHAR."\:@\/]+|".self::PCE.")";
-    private const QRY = "([".self::BASECHAR."]+|".self::PCE.")";
-    private const FRG = "([".self::BASECHAR."]+|".self::PCE.")";
+    /** @var string Pattern of hexadecimal number */
+    public const HEX = "A-Fa-f0-9";
 
-    private static $encoder = [
+    /** @var string Pattern of percent-encoded hexadecimal number */
+    public const PCE = '%['.self::HEX.']{2}';
+
+    /** @var string Pattern of Ipv4 addresses */
+    public const IP4 = "[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}\.[\d]{1,3}";
+
+    /** @var string Pattern of Ipv6 addresses */
+    public const IP6 = "(\[[".self::HEX."\:]{3,39}\])";
+
+    /** @var string Pattern of domain */
+    public const REG = '(['.self::BASECHAR.']+|'.self::PCE.')';
+ 
+    /** @var string Pattern of URI userinfo component */
+    public const USR = "([".self::BASECHAR."\:]+|".self::PCE.")";
+
+    /** @var string Pattern of URI host component */
+    public const HST = "(".self::IP4."|".self::IP6."|".self::REG."+)";
+
+    /** @var string Pattern of URI path component */
+    public const PTH = "([".self::BASECHAR."\:@\/]+|".self::PCE.")";
+
+    /** @var string Pattern of URI query string component */
+    public const QRY = "([".self::BASECHAR."]+|".self::PCE.")";
+
+    /** @var string Pattern of URI fragment component */
+    public const FRG = "([".self::BASECHAR."]+|".self::PCE.")";
+
+    public static $encoder = [
         'wholeuri' => '/([^'.self::BASECHAR.self::GENDELIM.']+|(?!'.self::PCE.'))/i',
         'userinfo' => '/([^'.self::BASECHAR.'\:]+|(?!'.self::PCE.'))/i',
         'host'     => '/([^'.self::BASECHAR.'\[\]\:]+|(?!'.self::PCE.'))/i',

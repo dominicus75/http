@@ -154,7 +154,7 @@ class Stream implements StreamInterface
             throw new \InvalidArgumentException('$resource must be a string or resource.');
         }
 
-        if (!empty($content)) {
+        if ($content != '') {
             try { $this->write($content); } catch (\RuntimeException $e) { throw $e; }
         }
     }

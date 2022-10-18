@@ -140,10 +140,14 @@ class Request extends AbstractMessage implements RequestInterface
      * request-target forms allowed in request messages)
      * @param mixed $requestTarget
      * @return static
+     * @throws \InvalidArgumentException if given request target is invalid
      */
     public function withRequestTarget(mixed $requestTarget): self
     {
         if ($requestTarget === $this->requestTarget) { return $this; }
+        if (\preg_match('/([^'.Uri::BASECHAR.Uri::GENDELIM.']+)/i', $requestTarget)) {
+            throw new \InvalidArgumentException('Invalid request target'.Uri::$encoder['wholeuri']);
+        }
         $clone = clone $this;
         $clone->requestTarget = $requestTarget;
         return $clone;
