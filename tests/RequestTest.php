@@ -6,6 +6,12 @@ use Psr\Http\Message\{MessageInterface, RequestInterface, UriInterface, StreamIn
 use Dominicus75\Psr7\{AbstractMessage, Request, Uri, Stream};
 use PHPUnit\Framework\TestCase;
 
+/**
+ * @covers Dominicus75\Psr7\Request
+ * Based on Tobias Nyholm's work and Guzzle
+ * @see https://github.com/Nyholm/psr7/blob/master/tests/RequestTest.php
+ * @see https://github.com/guzzle/psr7/blob/master/tests/RequestTest.php
+ */
 class RequestTest extends TestCase
 {
     public function testRequestUriMayBeString()

@@ -7,10 +7,10 @@ use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\{UploadedFileInterface, StreamInterface};
 
 /**
- * @covers Dominicus75\Psr7\Stream
+ * @covers Dominicus75\Psr7\UploadedFile
  * Based on Tobias Nyholm's work and Guzzle
- * @see https://github.com/Nyholm/psr7/blob/master/tests/StreamTest.php
- * @see https://github.com/guzzle/psr7/blob/master/tests/StreamTest.php
+ * @see https://github.com/Nyholm/psr7/blob/master/tests/UploadedFile.php
+ * @see https://github.com/guzzle/psr7/blob/master/tests/UploadedFile.php
  */
 class UploadedFileTest extends TestCase
 {
