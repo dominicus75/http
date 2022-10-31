@@ -47,6 +47,7 @@ class Request extends AbstractMessage implements RequestInterface
      *  - if $uri string is invalid
      *  - if HTTP protocol $version is not valid
      *  - if a header name is not valid
+     *  - if a header value is not valid
      *  - if writing of body to stream fails
      */
     public function __construct(

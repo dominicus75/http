@@ -62,29 +62,32 @@ class ServerRequest extends Request implements ServerRequestInterface
      */
     private array $attributes = [];
 
-        /**
+    /**
      * The constructor method. Creates a new Request instance.
      *
-     * @param string $version the HTTP protocol version as string
      * @param string $method the HTTP method name
+     * @param string|UriInterface $uri the requested URI
+     * @param string $version the HTTP protocol version as string
      * @param array $headers the HTTP headers
-     * @param string|UriInterface|null|null $uri the requested URI
-     * @param string|StreamInterface|null|null $body the request body
+     * @param string|StreamInterface $body the request body
      * @return self
      * @throws \InvalidArgumentException if
-     *  - HTTP protocol $version is not valid
-     *  - $method is not valid HTTP method,
-     *  - a header name is not valid.
+     *  - if $method is not a valid HTTP method,
+     *  - if $uri string is invalid
+     *  - if HTTP protocol $version is not valid
+     *  - if a header name is not valid
+     *  - if a header value is not valid
+     *  - if writing of body to stream fails
      */
     public function __construct(
+        string $method  = '',
+        string|UriInterface $uri,
         string $version = '1.1',
         array $headers  = [],
-        string|UriInterface|null $uri = null,
-        string|StreamInterface|null $body = null,
-        string $method  = ''
+        string|StreamInterface $body = '',
     ) {
         try {
-            parent::__construct($version, $headers, $body, $uri, $method);
+            parent::__construct($method, $uri, $version, $headers, $body);
         } catch (\InvalidArgumentException $e) { throw $e; }
     }
 
