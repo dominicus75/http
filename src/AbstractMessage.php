@@ -144,7 +144,7 @@ abstract class AbstractMessage implements MessageInterface
     {
         $name   = $this->normalizeHeaderdName($name);
         $result = $this->getHeader($name);
-        return !empty($result) ? \implode(',', $result) : '';
+        return !empty($result) ? \implode(', ', $result) : '';
     }
 
     /**
@@ -254,8 +254,13 @@ abstract class AbstractMessage implements MessageInterface
      */
     protected function normalizeHeaderdName(string $name): string
     {
-        $name = \str_replace('HTTP_', '', $name);
-        return \ucwords(\str_replace('_', '-', \strtolower($name)), '-');
+        if (str_starts_with($name, 'HTTP_')) { 
+            $name   = \str_replace('HTTP_', '', $name);
+            $result = \ucwords(\str_replace('_', '-', \strtolower($name)), '-');
+        } else {
+            $result = \ucwords(\strtolower($name) , " \t\r\n\f\v-_");
+        }
+        return $result;
     }
 
     /**
@@ -263,20 +268,32 @@ abstract class AbstractMessage implements MessageInterface
      * and each value is an array of strings associated with the header.
      *
      * @param string $name Case-insensitive header field name.
-     * @param string|string[] $value Header value(s).
+     * @param string|string[]|int $value Header value(s).
      * @param bool $update Is it update of existing field (true) or create new (false)?
      * @return AbstractMessage
      * @throws \InvalidArgumentException for invalid header names or values.
      */
-    protected function setHeader(string $name, string|array $value, bool $update = false): self
+    protected function setHeader(string $name, string|array|int $value, bool $update = false): self
     {
         $field = $this->normalizeHeaderdName($name);
 
-        if (!\array_key_exists($field, $this->headers)) { throw new \InvalidArgumentException('Invalid header name: '.$field); }
+        if (!\array_key_exists($field, $this->headers)) { throw new \InvalidArgumentException('Invalid header name: '.$name); }
 
-        if (!\is_array($value)) { $value = explode(',', $value); }
+        switch (\gettype($value)) {
+            case 'string':
+                $value = explode(',', $value);
+                break;
+            case 'integer':
+                $value = ["$value"];
+        }
 
-        foreach ($value as $item) { $headerField[] = \preg_replace('/[^\x20-\x7E]/', '', $item); }
+        foreach ($value as $item) { 
+            if(\preg_match('/^[\x20-\x7E]*$/is', $item)) {
+                $headerField[] = $item;
+            } else {
+                throw new \InvalidArgumentException('Invalid header value: '.$item);
+            }
+        }
 
         if (!$this->hasHeader($field) || $update) {
             $this->headers[$field] = $headerField;
@@ -299,7 +316,7 @@ abstract class AbstractMessage implements MessageInterface
         try {
             if (empty($headers)) {
                 foreach ($_SERVER as $name => $value) {
-                    if (str_starts_with($name, 'HTTP')) { $this->setHeader($name, $value); }
+                    if (str_starts_with($name, 'HTTP_')) { $this->setHeader($name, $value); }
                 }
             } else {
                 foreach ($headers as $name => $value) { $this->setHeader($name, $value); }

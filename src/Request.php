@@ -103,6 +103,7 @@ class Request extends AbstractMessage implements RequestInterface
             $this->headers['X-Requested-With']               = null;
             $this->headers['X-Csrf-Token']                   = null;   
 
+            $this->setHostHeader();
             $this->setHeaders($headers);
             
             if($body instanceof StreamInterface) {
@@ -200,11 +201,9 @@ class Request extends AbstractMessage implements RequestInterface
 
         $clone      = clone $this;
         $clone->uri = $uri;
-        $reqHost    = $clone->getHeaderLine('Host');
-        $uriHost    = $clone->getUri()->getHost();
 
-        if ((!$preserveHost xor ($preserveHost && empty($reqHost))) && !empty($uriHost)) {
-            $clone->setHeader('Host', $uriHost, true);
+        if ((!$preserveHost xor ($preserveHost && empty($clone->getHeaderLine('Host')))) && !empty($clone->getUri()->getHost())) {
+            $clone->setHostHeader(update: true);
         }
 
         return $clone;
@@ -223,10 +222,10 @@ class Request extends AbstractMessage implements RequestInterface
      */
     private function setMethod(string $method = ''): self
     {
-        $method = !empty($method) ? $method : $_SERVER['REQUEST_METHOD'];
+        $method = $method != '' ? $method : $_SERVER['REQUEST_METHOD'];
 
         if (\preg_match('/^(options|get|head|put|post|delete|patch)$/is', $method)) {
-            $this->method = $method;
+            $this->method = strtoupper($method);
             return $this;
         } else { throw new \InvalidArgumentException($method.' is not a valid HTTP method.'); }
     }
@@ -240,9 +239,43 @@ class Request extends AbstractMessage implements RequestInterface
     {
         $path                 = $this->uri->getPath();
         $query                = $this->uri->getQuery();
-        $this->requestTarget  = empty($path) ? '/' : $path;
-        $this->requestTarget .= empty($query) ? '' : '?'.$query;        
+        $this->requestTarget  = $path  === '' ? '/' : $path;
+        $this->requestTarget .= $query === '' ? '' : '?'.$query;        
 		return $this;
 	}
+
+    /**
+     * Sets the Host header value
+     *
+     * @param string $host
+     * @param integer|null $port
+     * @return void
+     * @throws \InvalidArgumentException $host or $port is not valid
+     */
+    private function setHostHeader(string $host = '', ?int $port = null, bool $update = false): void
+    {
+        $host = $host === '' ? $this->uri->getHost() : $host;
+
+        if ($host === '') {
+            $result = ''; 
+        } elseif (\preg_match('/^'.Uri::HST.'+$/i', $host)) { 
+
+            $result = $host; 
+            $port   = \is_null($port) ? $this->uri->getPort() : $port;
+
+            if (\is_null($port) || (isset(Uri::$schemes[$port]) && Uri::$schemes[$port] === $this->uri->getScheme())) {
+                $result .= '';
+            } elseif ($port > 0 && 65535 >= $port) {
+                $result .= ':'.$port;
+            } else {
+                throw new \InvalidArgumentException($port.' is not a valid port number');
+            }  
+
+        } else {
+            throw new \InvalidArgumentException($host.' is not a valid host');
+        }
+
+        $this->setHeader('Host', $result, $update);
+    }
 
 }

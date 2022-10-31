@@ -570,7 +570,7 @@ class Uri implements UriInterface
      */
     protected function setQuery(string $query): self 
     {
-        if (empty($query)) {
+        if ($query === '') {
             $this->query = '';
         } else {
             $query = $this->encode($query, 'query');
