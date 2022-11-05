@@ -105,7 +105,7 @@ class Request extends AbstractMessage implements RequestInterface
             $this->headers['X-Csrf-Token']                   = null;   
 
             $this->setHostHeader();
-            $this->setHeaders($headers);
+            if (!empty($headers)) { $this->setHeaders($headers); }
             
             if($body instanceof StreamInterface) {
                 $this->body = $body;
@@ -148,7 +148,7 @@ class Request extends AbstractMessage implements RequestInterface
     {
         if ($requestTarget === $this->requestTarget) { return $this; }
         if (\preg_match('/([^'.Uri::BASECHAR.Uri::GENDELIM.']+)/i', $requestTarget)) {
-            throw new \InvalidArgumentException('Invalid request target'.Uri::$encoder['wholeuri']);
+            throw new \InvalidArgumentException('Invalid request target');
         }
         $clone = clone $this;
         $clone->requestTarget = $requestTarget;
@@ -221,10 +221,8 @@ class Request extends AbstractMessage implements RequestInterface
      * @return self
      * @throws \InvalidArgumentException when method name is invalid
      */
-    private function setMethod(string $method = ''): self
+    private function setMethod(string $method): self
     {
-        $method = $method != '' ? $method : $_SERVER['REQUEST_METHOD'];
-
         if (\preg_match('/^(options|get|head|put|post|delete|patch)$/is', $method)) {
             $this->method = strtoupper($method);
             return $this;

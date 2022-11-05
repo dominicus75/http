@@ -16,6 +16,42 @@ class RequestTest extends TestCase
 {
     private Request $request;
 
+    public function createServer(): void
+    {
+        $_SERVER = [
+            "HTTP_HOST" =>  "sandbox.loc",
+            "HTTP_USER_AGENT" => "Mozilla/5.0 (X11; Linux x86_64; rv:102.0) Gecko/20100101 Firefox/102.0",
+            "HTTP_ACCEPT" =>  "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+            "HTTP_ACCEPT_LANGUAGE" => "hu-HU,hu;q=0.8,en-US;q=0.5,en;q=0.3",
+            "HTTP_ACCEPT_ENCODING" => "gzip, deflate",
+            "HTTP_CONNECTION" => "keep-alive",
+            "HTTP_UPGRADE_INSECURE_REQUESTS" => "1",
+            "PATH" => "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+            "SERVER_SIGNATURE" => "Apache/2.4.54 (Debian) Server at sandbox.loc Port 80",
+            "SERVER_SOFTWARE" => "Apache/2.4.54 (Debian)",
+            "SERVER_NAME" => "sandbox.loc",
+            "SERVER_ADDR" => "127.0.0.1",
+            "SERVER_PORT" => "80",
+            "REMOTE_ADDR" => "127.0.0.1",
+            "DOCUMENT_ROOT" => "/var/www/html/sandbox/public",
+            "REQUEST_SCHEME" => "http",
+            "CONTEXT_PREFIX" => "",
+            "CONTEXT_DOCUMENT_ROOT" => "/var/www/html/sandbox/public",
+            "SERVER_ADMIN" => "webmaster@sandbox.loc",
+            "SCRIPT_FILENAME" => "/var/www/html/sandbox/public/index.php",
+            "REMOTE_PORT" => "52268",
+            "GATEWAY_INTERFACE" => "CGI/1.1",
+            "SERVER_PROTOCOL" => "HTTP/1.1",
+            "REQUEST_METHOD" => "GET",
+            "QUERY_STRING" => "",
+            "REQUEST_URI" => "/",
+            "SCRIPT_NAME" => "/index.php",
+            "PHP_SELF" => "/index.php",
+            "REQUEST_TIME_FLOAT" => 1667373705.816522,
+            "REQUEST_TIME" => 1667373705
+        ];
+    }
+
     public function testRequestUriMayBeString()
     {
         $r = new Request('GET', '/');

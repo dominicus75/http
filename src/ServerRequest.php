@@ -233,7 +233,7 @@ class ServerRequest extends Request implements ServerRequestInterface
 	 */
 	private function setServer(array $server = []): self 
     {
-		$this->server = $server;
+		$this->server = !empty($server) ? $server : $_SERVER;
 		return $this;
 	}
 
@@ -246,7 +246,7 @@ class ServerRequest extends Request implements ServerRequestInterface
 	 */
 	private function setCookie(array $cookie = []): self 
     {
-		$this->cookie = $cookie;
+		$this->cookie = !empty($cookie) ? $cookie : $_COOKIE;
 		return $this;
 	}
 
@@ -259,7 +259,7 @@ class ServerRequest extends Request implements ServerRequestInterface
 	 */
 	private function setGet(array $get = []): self 
     {
-		$this->get = $get;
+		$this->get = !empty($get) ? $get : $_GET;
 		return $this;
 	}
 
@@ -272,7 +272,7 @@ class ServerRequest extends Request implements ServerRequestInterface
 	 */
 	private function setFiles(array $files = []): self 
     {
-		$this->files = $files;
+        $files = !empty($files) ? $files : $_FILES;
 		return $this;
 	}
 
@@ -285,7 +285,7 @@ class ServerRequest extends Request implements ServerRequestInterface
 	 */
 	private function setPost(array|StreamInterface $post = []): self 
     {
-		$this->post = $post;
+		$this->post = !empty($post) ? $post : $_POST;
 		return $this;
 	}
 
@@ -294,24 +294,14 @@ class ServerRequest extends Request implements ServerRequestInterface
 	 * 
      * @param string $name Attribute's name
 	 * @param mixed $value Attrinute's value
+     * @param bool $update update exists attribute or not
 	 * @return Request
 	 */
-	private function setAttribute(string $name, mixed $value): self 
+	private function setAttribute(string $name, mixed $value, bool $update = false): self 
     {
-        $this->attributes[$name] = $value;
-        return $this;
-	}
-
-	/**
-	 * Updates an attribute derived from the request.
-	 * 
-     * @param string $name Attribute's name
-	 * @param mixed $value Attrinute's value
-	 * @return Request
-	 */
-	private function updateAttribute(string $name, mixed $value): self 
-    {
-        $this->attributes[$name] = $value;
+        if ((isset($this->attributes[$name]) && $update) xor !isset($this->attributes[$name])) {
+            $this->attributes[$name] = $value;
+        }
         return $this;
 	}
 

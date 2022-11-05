@@ -236,9 +236,7 @@ abstract class AbstractMessage implements MessageInterface
      */
     protected function setProtocolVersion(string $version = ''): self
     {
-        if (empty($version)) {
-            $this->setProtocolVersion(explode('/', $_SERVER['SERVER_PROTOCOL'])[1]);
-        } elseif (\preg_match("/^(1\.0|1\.1|2\.0)$/", $version)) {
+        if (\preg_match("/^(1\.0|1\.1|2\.0)$/", $version)) {
             $this->version = $version;
         } else {
             throw new \InvalidArgumentException($version.' is not a valid HTTP protocol version');
@@ -258,7 +256,7 @@ abstract class AbstractMessage implements MessageInterface
             $name   = \str_replace('HTTP_', '', $name);
             $result = \ucwords(\str_replace('_', '-', \strtolower($name)), '-');
         } else {
-            $result = \ucwords(\strtolower($name) , " \t\r\n\f\v-_");
+            $result = \ucwords(\strtolower($name) , " \t\f\v-_");
         }
         return $result;
     }
@@ -285,6 +283,7 @@ abstract class AbstractMessage implements MessageInterface
                 break;
             case 'integer':
                 $value = ["$value"];
+                break;
         }
 
         foreach ($value as $item) { 
@@ -311,16 +310,10 @@ abstract class AbstractMessage implements MessageInterface
      * @return self
      * @throws \InvalidArgumentException for invalid header names or values.
      */
-    protected function setHeaders(array $headers = []): self
+    protected function setHeaders(array $headers): self
     {
         try {
-            if (empty($headers)) {
-                foreach ($_SERVER as $name => $value) {
-                    if (str_starts_with($name, 'HTTP_')) { $this->setHeader($name, $value); }
-                }
-            } else {
-                foreach ($headers as $name => $value) { $this->setHeader($name, $value); }
-            }
+            foreach ($headers as $name => $value) { $this->setHeader($name, $value); }
         } catch (\InvalidArgumentException $e) { throw $e; }
 
         return $this;
